@@ -5,6 +5,7 @@ import Tasks from '../pages/Tasks.vue';
 import Rewards from '../pages/Rewards.vue';
 import History from '../pages/History.vue';
 import Upgrade from '../pages/Upgrade.vue';
+import Badges from '../pages/Badges.vue';
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
@@ -13,6 +14,7 @@ const routes = [
   { path: '/rewards', name: 'Rewards', component: Rewards },
   { path: '/history', name: 'History', component: History },
   { path: '/upgrade', name: 'Upgrade', component: Upgrade },
+  { path: '/badges', name: 'Badges', component: Badges },
 ];
 
 const router = createRouter({

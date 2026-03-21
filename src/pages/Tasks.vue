@@ -19,17 +19,22 @@
       </span>
     </div>
 
-    <div class="tasks-list" v-if="tasks.length > 0">
-      <div v-for="task in tasks" :key="task.id" class="task-card">
-        <span class="task-icon">{{ task.icon }}</span>
-        <div class="task-info">
-          <span class="task-name">{{ task.name }}</span>
-          <span class="task-points">+{{ task.points }}分 / -{{ task.deductPoints }}分</span>
+      <div class="tasks-list" v-if="tasks.length > 0">
+        <div v-for="task in tasks" :key="task.id" class="task-card">
+          <span class="task-icon">{{ task.icon }}</span>
+          <div class="task-info">
+            <span class="task-name">{{ task.name }}</span>
+            <div class="task-meta">
+              <span class="task-points">+{{ task.points }}分 / -{{ task.deductPoints }}分</span>
+              <span class="task-category" :style="{ color: getCategoryColor(task.category) }">
+                {{ getCategoryLabel(task.category) }}
+              </span>
+            </div>
+          </div>
+          <button class="edit-btn" @click="editTask(task)">编辑</button>
+          <button class="delete-btn" @click="confirmDelete(task)">删除</button>
         </div>
-        <button class="edit-btn" @click="editTask(task)">编辑</button>
-        <button class="delete-btn" @click="confirmDelete(task)">删除</button>
       </div>
-    </div>
 
     <div class="empty-state" v-else-if="currentChild">
       <p>还没有任务</p>
@@ -40,7 +45,7 @@
       <router-link to="/children" class="btn-link">去添加</router-link>
     </div>
 
-    <div class="add-section" v-if="currentChild">
+      <div class="add-section" v-if="currentChild">
       <h3>{{ editingTask ? '编辑任务' : '添加任务' }}</h3>
       
       <div class="icon-picker">
@@ -51,6 +56,19 @@
           :class="{ selected: newTask.icon === icon }"
           @click="newTask.icon = icon"
         >{{ icon }}</span>
+      </div>
+
+      <div class="category-picker">
+        <span 
+          v-for="cat in categoryOptions" 
+          :key="cat"
+          class="cat-option"
+          :class="{ selected: newTask.category === cat }"
+          :style="newTask.category === cat ? { background: getCategoryColor(cat), borderColor: getCategoryColor(cat) } : {}"
+          @click="newTask.category = cat"
+        >
+          {{ getCategoryLabel(cat) }}
+        </span>
       </div>
 
       <div class="input-group">
@@ -132,7 +150,8 @@
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { store } from '../stores/store';
-import type { Task } from '../types';
+import type { Task, TaskCategory } from '../types';
+import { CATEGORY_LABELS, CATEGORY_COLORS } from '../types';
 
 const router = useRouter();
 const isPro = computed(() => store.isPro);
@@ -147,13 +166,16 @@ watch(currentChild, (child) => {
 const tasks = computed(() => store.getTasks(selectedChildId.value));
 const canAddTask = computed(() => store.canAddTask(selectedChildId.value));
 
-const iconOptions = ['🌅', '📚', '📖', '🏃', '🧹', '🍎', '💤', '✏️', '🎵', '🎨', '🚿', '🛏️'];
+const iconOptions = ['🌅', '📚', '📖', '🏃', '🧹', '🍎', '💤', '✏️', '🎵', '🎨', '🚿', '🛏️', '🧼', '🦷', '🎮'];
+const categoryOptions: TaskCategory[] = ['study', 'life', 'exercise', 'other'];
+
 const presetTasks = [
-  { name: '按时起床', icon: '🌅', points: 5, deductPoints: 3 },
-  { name: '认真作业', icon: '📚', points: 10, deductPoints: 5 },
-  { name: '主动阅读', icon: '📖', points: 5, deductPoints: 2 },
-  { name: '整理房间', icon: '🧹', points: 5, deductPoints: 3 },
-  { name: '早睡早起', icon: '💤', points: 5, deductPoints: 3 },
+  { name: '按时起床', icon: '🌅', points: 5, deductPoints: 3, category: 'life' as TaskCategory },
+  { name: '认真作业', icon: '📚', points: 10, deductPoints: 5, category: 'study' as TaskCategory },
+  { name: '主动阅读', icon: '📖', points: 5, deductPoints: 2, category: 'study' as TaskCategory },
+  { name: '整理房间', icon: '🧹', points: 5, deductPoints: 3, category: 'life' as TaskCategory },
+  { name: '早睡早起', icon: '💤', points: 5, deductPoints: 3, category: 'life' as TaskCategory },
+  { name: '体育锻炼', icon: '🏃', points: 8, deductPoints: 4, category: 'exercise' as TaskCategory },
 ];
 
 const newTask = ref({
@@ -161,6 +183,7 @@ const newTask = ref({
   icon: '🌅',
   points: 5,
   deductPoints: 3,
+  category: 'other' as TaskCategory,
 });
 
 const editingTask = ref<Task | null>(null);
@@ -172,6 +195,7 @@ const applyPreset = (preset: typeof presetTasks[0]) => {
   newTask.value.icon = preset.icon;
   newTask.value.points = preset.points;
   newTask.value.deductPoints = preset.deductPoints;
+  newTask.value.category = preset.category;
 };
 
 const saveTask = () => {
@@ -183,10 +207,11 @@ const saveTask = () => {
       icon: newTask.value.icon,
       points: newTask.value.points,
       deductPoints: newTask.value.deductPoints,
+      category: newTask.value.category,
     });
     cancelEdit();
   } else {
-    if (store.addTask(selectedChildId.value, newTask.value.name, newTask.value.points, newTask.value.deductPoints, newTask.value.icon)) {
+    if (store.addTask(selectedChildId.value, newTask.value.name, newTask.value.points, newTask.value.deductPoints, newTask.value.icon, newTask.value.category)) {
       resetForm();
     }
   }
@@ -199,6 +224,7 @@ const editTask = (task: Task) => {
     icon: task.icon,
     points: task.points,
     deductPoints: task.deductPoints,
+    category: task.category || 'other',
   };
 };
 
@@ -208,8 +234,11 @@ const cancelEdit = () => {
 };
 
 const resetForm = () => {
-  newTask.value = { name: '', icon: '🌅', points: 5, deductPoints: 3 };
+  newTask.value = { name: '', icon: '🌅', points: 5, deductPoints: 3, category: 'other' };
 };
+
+const getCategoryLabel = (cat: TaskCategory) => CATEGORY_LABELS[cat];
+const getCategoryColor = (cat: TaskCategory) => CATEGORY_COLORS[cat];
 
 const confirmDelete = (task: Task) => {
   deleteTarget.value = task;
@@ -383,6 +412,28 @@ const goToUpgrade = () => router.push('/upgrade');
 
 .icon-option.selected {
   background: #e8e4f8;
+}
+
+.category-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.cat-option {
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cat-option.selected {
+  color: white;
+  font-weight: 500;
 }
 
 .input-group {

@@ -1,4 +1,4 @@
-import type { Child, Task, DailyRecord, Reward, Redemption, AppState } from '../types';
+import type { Child, Task, DailyRecord, Reward, Redemption, AppState, Badge, TaskCategory } from '../types';
 
 const STORAGE_KEY = 'grow_points_data';
 
@@ -8,6 +8,7 @@ interface StorageData {
   records: DailyRecord[];
   rewards: Reward[];
   redemptions: Redemption[];
+  badges: Badge[];
   appState: AppState;
 }
 
@@ -26,6 +27,13 @@ class Store {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       this.data = JSON.parse(saved);
+      // 确保旧数据有新增字段
+      if (!this.data.badges) this.data.badges = [];
+      this.data.children = this.data.children.map(c => ({
+        ...c,
+        streakDays: c.streakDays || 0,
+        maxStreakDays: c.maxStreakDays || 0,
+      }));
     } else {
       this.data = {
         children: [],
@@ -33,6 +41,7 @@ class Store {
         records: [],
         rewards: [],
         redemptions: [],
+        badges: [],
         appState: { isPro: false, currentChildId: null },
       };
     }
@@ -85,12 +94,16 @@ class Store {
       name,
       avatar,
       createdAt: new Date().toISOString(),
+      streakDays: 0,
+      maxStreakDays: 0,
     };
     this.data.children.push(child);
     if (!this.data.appState.currentChildId) {
       this.data.appState.currentChildId = child.id;
     }
     this.save();
+    // 授予首次使用徽章
+    this.awardBadge(child.id, 'first_login');
     return child;
   }
 
@@ -114,7 +127,7 @@ class Store {
     return this.data.tasks.filter(t => t.childId === childId);
   }
 
-  addTask(childId: string, name: string, points: number, deductPoints: number, icon: string): Task | null {
+  addTask(childId: string, name: string, points: number, deductPoints: number, icon: string, category: TaskCategory = 'other'): Task | null {
     const childTasks = this.getTasks(childId);
     if (!this.data.appState.isPro && childTasks.length >= 3) {
       return null;
@@ -126,6 +139,7 @@ class Store {
       points,
       deductPoints,
       icon,
+      category,
     };
     this.data.tasks.push(task);
     this.save();
@@ -177,6 +191,33 @@ class Store {
       });
     }
     this.save();
+    
+    // 检查徽章条件
+    if (completed) {
+      // 首次完成任务
+      const hasAnyCompleted = this.data.records.some(r => r.childId === childId && r.completed);
+      if (hasAnyCompleted) {
+        this.awardBadge(childId, 'first_task');
+      }
+      
+      // 检查完美一天
+      this.checkPerfectDay(childId);
+      
+      // 检查早起达人
+      const hour = new Date().getHours();
+      if (hour < 8) {
+        this.awardBadge(childId, 'early_bird');
+      }
+      
+      // 检查积分徽章
+      const total = this.getTotalPoints(childId);
+      if (total >= 100) this.awardBadge(childId, 'points_100');
+      if (total >= 500) this.awardBadge(childId, 'points_500');
+      if (total >= 1000) this.awardBadge(childId, 'points_1000');
+    }
+    
+    // 更新连续打卡天数
+    this.updateStreak(childId);
   }
 
   // Points Calculation
@@ -260,6 +301,87 @@ class Store {
       .sort((a, b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime());
   }
 
+  // Badges
+  getBadges(childId: string): Badge[] {
+    return this.data.badges.filter(b => b.childId === childId);
+  }
+
+  hasBadge(childId: string, type: string): boolean {
+    return this.data.badges.some(b => b.childId === childId && b.type === type);
+  }
+
+  awardBadge(childId: string, type: string): void {
+    if (this.hasBadge(childId, type)) return;
+    this.data.badges.push({
+      id: generateId(),
+      childId,
+      type: type as any,
+      earnedAt: new Date().toISOString(),
+    });
+    this.save();
+  }
+
+  // Streak tracking
+  updateStreak(childId: string): void {
+    const child = this.getChild(childId);
+    if (!child) return;
+
+    const today = getToday();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // 检查今天的任务是否都完成了
+    const tasks = this.getTasks(childId);
+    const todayRecords = this.getRecords(childId, today);
+    const allCompletedToday = tasks.length > 0 && tasks.every(t => 
+      todayRecords.some(r => r.taskId === t.id && r.completed)
+    );
+
+    if (allCompletedToday) {
+      // 检查昨天是否也完成了
+      const yesterdayRecords = this.getRecords(childId, yesterdayStr);
+      const completedYesterday = tasks.every(t =>
+        yesterdayRecords.some(r => r.taskId === t.id && r.completed)
+      );
+
+      if (completedYesterday || child.streakDays === 0) {
+        child.streakDays++;
+        if (child.streakDays > child.maxStreakDays) {
+          child.maxStreakDays = child.streakDays;
+        }
+      } else {
+        child.streakDays = 1;
+      }
+
+      // 检查连续打卡徽章
+      if (child.streakDays >= 3) this.awardBadge(childId, 'streak_3');
+      if (child.streakDays >= 7) this.awardBadge(childId, 'streak_7');
+      if (child.streakDays >= 30) this.awardBadge(childId, 'streak_30');
+    }
+
+    this.save();
+  }
+
+  getStreak(childId: string): number {
+    const child = this.getChild(childId);
+    return child?.streakDays || 0;
+  }
+
+  // Check perfect day achievement
+  checkPerfectDay(childId: string): void {
+    const today = getToday();
+    const tasks = this.getTasks(childId);
+    const todayRecords = this.getRecords(childId, today);
+    
+    if (tasks.length > 0 && tasks.every(t => 
+      todayRecords.some(r => r.taskId === t.id && r.completed)
+    )) {
+      this.awardBadge(childId, 'perfect_day');
+    }
+  }
+
+  // Rewards with badge
   redeemReward(childId: string, reward: Reward): boolean {
     const total = this.getTotalPoints(childId);
     if (total < reward.points) return false;
@@ -273,6 +395,12 @@ class Store {
       redeemedAt: new Date().toISOString(),
     });
     this.save();
+    
+    // 首次兑换徽章
+    if (this.data.redemptions.filter(r => r.childId === childId).length === 1) {
+      this.awardBadge(childId, 'rewards_1');
+    }
+    
     return true;
   }
 
@@ -284,6 +412,7 @@ class Store {
       records: [],
       rewards: [],
       redemptions: [],
+      badges: [],
       appState: { isPro: false, currentChildId: null },
     };
     this.save();
