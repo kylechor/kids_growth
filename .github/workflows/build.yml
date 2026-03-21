@@ -37,11 +37,12 @@ jobs:
             echo "Adding Android platform..."
             npx cap add android
           else
-            echo "Android platform already exists"
+            echo "Android platform already exists, syncing..."
+            npx cap sync android
           fi
 
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Copy web assets to Android
+        run: npx cap copy android
 
       - name: Build APK
         run: |
