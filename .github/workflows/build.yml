@@ -31,6 +31,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Add Android platform
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Adding Android platform..."
+            npx cap add android
+          else
+            echo "Android platform already exists"
+          fi
+
       - name: Sync Capacitor
         run: npx cap sync android
 
