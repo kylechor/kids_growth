@@ -162,11 +162,6 @@ const weekNumber = computed(() => {
   return Math.ceil((diff + start.getDay() * 24 * 60 * 60 * 1000) / oneWeek);
 });
 
-const weekProgress = computed(() => {
-  const dayOfWeek = today.getDay() || 7;
-  return Math.round((dayOfWeek / 7) * 100);
-});
-
 const remainingDays = computed(() => {
   return totalDaysInYear.value - dayOfYear.value;
 });

@@ -283,12 +283,6 @@ const monthCheckinDays = computed(() => currentChild.value ? store.getMonthCheck
 
 const recordStatus = ref<Record<string, boolean>>({});
 
-// 月份标签
-const monthLabel = computed(() => {
-  const date = currentMonth.value;
-  return `${date.getFullYear()}年${date.getMonth() + 1}月`;
-});
-
 // 周数据
 const weekStats = computed(() => {
   if (!currentChild.value) return { completed: 0, total: 0, points: 0 };
