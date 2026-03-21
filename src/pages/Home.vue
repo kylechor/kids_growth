@@ -24,7 +24,7 @@
     <!-- 主内容区 -->
     <div class="main-content" v-if="currentChild">
       
-      <!-- 简化打卡日历 - 只显示当月每天 -->
+      <!-- GitHub风格打卡日历 -->
       <div class="calendar-section">
         <div class="calendar-header">
           <div class="calendar-title">
@@ -33,22 +33,38 @@
           </div>
           <div class="month-badge">{{ monthCheckinDays }}/{{ daysInMonth }} 天</div>
         </div>
-        <div class="calendar-grid-simple">
+        <!-- 星期标签 -->
+        <div class="weekday-row">
+          <span v-for="day in ['一','二','三','四','五','六','日']" :key="day" class="weekday-label">{{ day }}</span>
+        </div>
+        <!-- GitHub风格网格 -->
+        <div class="github-grid">
           <div 
             v-for="day in monthDaysArray" 
             :key="day.date"
-            class="day-cell"
+            class="github-cell"
             :class="{ 
-              'completed': day.completed,
-              'partial': day.partial,
+              'level-0': day.level === 0,
+              'level-1': day.level === 1,
+              'level-2': day.level === 2,
+              'level-3': day.level === 3,
+              'level-4': day.level === 4,
               'today': day.isToday,
-              'future': day.isFuture,
-              'empty': day.day === 0
+              'future': day.isFuture
             }"
+            :title="day.day > 0 ? `${day.day}日: ${day.completedPercent}%` : ''"
           >
-            <span class="day-num" v-if="day.day > 0">{{ day.day }}</span>
-            <span class="day-indicator" v-if="day.day > 0 && (day.completed || day.partial)">✓</span>
           </div>
+        </div>
+        <!-- 图例 -->
+        <div class="legend">
+          <span class="legend-label">少</span>
+          <div class="legend-cell level-0"></div>
+          <div class="legend-cell level-1"></div>
+          <div class="legend-cell level-2"></div>
+          <div class="legend-cell level-3"></div>
+          <div class="legend-cell level-4"></div>
+          <span class="legend-label">多</span>
         </div>
       </div>
 
@@ -211,6 +227,7 @@ import { useRouter } from 'vue-router';
 import { store } from '../stores/store';
 import type { Task, TaskCategory } from '../types';
 import { CATEGORY_LABELS } from '../types';
+import BottomNav from '../components/BottomNav.vue';
 
 const router = useRouter();
 const children = computed(() => store.getChildren());
@@ -240,20 +257,35 @@ const monthDaysArray = computed(() => {
   const todayStr = today.toISOString().split('T')[0];
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
   
-  const result: { day: number; date: string; completed: boolean; partial: boolean; isToday: boolean; isFuture: boolean }[] = [];
+  // 获取当天任务总数
+  const tasks = store.getTasks(currentChild.value!.id);
+  const totalTasks = tasks.length || 1;
+  
+  const result: { day: number; date: string; completed: boolean; partial: boolean; isToday: boolean; isFuture: boolean; level: number; completedPercent: number }[] = [];
   
   for (let d = 1; d <= totalDays; d++) {
     const dayStr = `${monthStr}-${String(d).padStart(2, '0')}`;
     const dayRecords = store.getRecords(currentChild.value!.id, dayStr);
-    const hasCompleted = dayRecords.some(r => r.completed);
+    const completedCount = dayRecords.filter(r => r.completed).length;
+    const hasAnyRecords = dayRecords.length > 0;
+    const completedPercent = Math.round((completedCount / totalTasks) * 100);
+    
+    // 根据完成百分比计算颜色等级
+    let level = 0;
+    if (completedPercent > 0) level = 1;
+    if (completedPercent >= 25) level = 2;
+    if (completedPercent >= 50) level = 3;
+    if (completedPercent >= 75) level = 4;
     
     result.push({
       day: d,
       date: dayStr,
-      completed: hasCompleted && dayRecords.length > 0,
-      partial: !hasCompleted && dayRecords.length > 0,
+      completed: hasAnyRecords && completedCount === totalTasks,
+      partial: hasAnyRecords && completedCount < totalTasks,
       isToday: dayStr === todayStr,
-      isFuture: dayStr > todayStr
+      isFuture: dayStr > todayStr,
+      level,
+      completedPercent
     });
   }
   
@@ -529,57 +561,103 @@ onMounted(loadRecords);
   font-weight: 600;
 }
 
-/* 简化日历网格 */
-.calendar-grid-simple {
+/* GitHub风格日历 */
+.weekday-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 4px;
+  margin-bottom: 8px;
 }
 
-.day-cell {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  position: relative;
-}
-
-.day-cell.empty {
-  background: transparent;
-}
-
-.day-cell.today {
-  border: 2px solid var(--color-primary);
-}
-
-.day-cell.completed {
-  background: var(--color-success);
-  color: white;
-}
-
-.day-cell.partial {
-  background: rgba(16, 185, 129, 0.5);
-  color: white;
-}
-
-.day-cell.future {
-  color: var(--color-text-muted);
-  opacity: 0.5;
-}
-
-.day-cell .day-num {
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.day-cell .day-indicator {
+.weekday-label {
+  text-align: center;
   font-size: 10px;
-  margin-top: 1px;
+  color: var(--color-text-muted);
+}
+
+.github-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.github-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: #ebedf0;
+  transition: transform 0.1s ease;
+}
+
+.github-cell.level-0 {
+  background: #ebedf0;
+}
+
+.github-cell.level-1 {
+  background: #9be9a8;
+}
+
+.github-cell.level-2 {
+  background: #40c463;
+}
+
+.github-cell.level-3 {
+  background: #30a14e;
+}
+
+.github-cell.level-4 {
+  background: #216e39;
+}
+
+.github-cell.today {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.github-cell.future {
+  opacity: 0.4;
+}
+
+.github-cell:hover {
+  transform: scale(1.1);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.legend-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-cell.level-0 {
+  background: #ebedf0;
+}
+
+.legend-cell.level-1 {
+  background: #9be9a8;
+}
+
+.legend-cell.level-2 {
+  background: #40c463;
+}
+
+.legend-cell.level-3 {
+  background: #30a14e;
+}
+
+.legend-cell.level-4 {
+  background: #216e39;
+}
+
+.legend-label {
+  margin: 0 4px;
 }
 
 /* Today Data Card */
