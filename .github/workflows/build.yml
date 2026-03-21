@@ -18,11 +18,6 @@ jobs:
         with:
           node-version: 22
 
-      - name: Fix npm bin permissions
-        run: |
-          find node_modules -type f -name "*.js" -path "*/bin/*" | head -5
-          for f in $(find node_modules -type f -name "*.js" -path "*/bin/*"); do chmod +x "$f" 2>/dev/null || true; done
-
       - name: Install npm dependencies
         run: npm install
 
