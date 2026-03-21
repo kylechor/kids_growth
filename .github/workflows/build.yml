@@ -18,6 +18,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Fix npm bin permissions
+        run: |
+          find node_modules -type f -name "*.js" -path "*/bin/*" | head -5
+          for f in $(find node_modules -type f -name "*.js" -path "*/bin/*"); do chmod +x "$f" 2>/dev/null || true; done
+
       - name: Install npm dependencies
         run: npm install
 
@@ -33,10 +38,10 @@ jobs:
       - name: Prepare Android platform
         run: |
           rm -rf android
-          npx cap add android
+          node node_modules/@capacitor/cli/bin/cap add android
 
       - name: Sync web assets to Android
-        run: npx cap sync android
+        run: node node_modules/@capacitor/cli/bin/cap sync android
 
       - name: Build Android APK
         run: |
