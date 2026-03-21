@@ -3,11 +3,12 @@
     <div class="header-bar">
       <router-link to="/" class="back-btn">←</router-link>
       <h2>孩子管理</h2>
-      <button class="upgrade-btn" @click="goToUpgrade" v-if="!isPro">解锁</button>
+      <button class="unlock-btn" @click="goToUpgrade" v-if="!isPro">解锁</button>
       <span v-else></span>
     </div>
 
-    <div class="children-list">
+    <!-- 孩子列表 -->
+    <div class="children-list" v-if="children.length > 0">
       <div 
         v-for="child in children" 
         :key="child.id"
@@ -15,26 +16,47 @@
         :class="{ active: child.id === currentChildId }"
         @click="selectChild(child.id)"
       >
-        <span class="avatar">{{ child.avatar }}</span>
-        <div class="info">
-          <span class="name">{{ child.name }}</span>
-          <span class="points">{{ store.getTotalPoints(child.id) }} 积分</span>
+        <div class="child-avatar">
+          <span class="avatar">{{ child.avatar }}</span>
+          <span class="status" :class="{ online: child.id === currentChildId }"></span>
         </div>
-        <button class="delete-btn" @click.stop="confirmDelete(child)">删除</button>
+        <div class="child-info">
+          <span class="name">{{ child.name }}</span>
+          <span class="points">
+            <span class="icon">⭐</span>
+            {{ store.getTotalPoints(child.id) }} 积分
+          </span>
+        </div>
+        <button class="delete-btn" @click.stop="confirmDelete(child)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
       </div>
     </div>
 
+    <!-- 添加孩子 -->
     <div class="add-section" v-if="canAddChild">
-      <h3>添加孩子</h3>
-      <div class="avatar-picker">
-        <span 
-          v-for="avatar in avatarOptions" 
-          :key="avatar"
-          class="avatar-option"
-          :class="{ selected: newChildAvatar === avatar }"
-          @click="newChildAvatar = avatar"
-        >{{ avatar }}</span>
+      <div class="form-header">
+        <h3>添加孩子</h3>
       </div>
+      
+      <div class="avatar-picker-section">
+        <label>选择头像</label>
+        <div class="avatar-picker">
+          <button 
+            v-for="avatar in avatarOptions" 
+            :key="avatar"
+            class="avatar-option"
+            :class="{ selected: newChildAvatar === avatar }"
+            @click="newChildAvatar = avatar"
+          >
+            {{ avatar }}
+          </button>
+        </div>
+      </div>
+
       <div class="input-group">
         <input 
           v-model="newChildName" 
@@ -42,15 +64,20 @@
           @keyup.enter="addChild"
         />
       </div>
+
       <button class="btn-primary" @click="addChild" :disabled="!newChildName.trim()">
-        添加
+        添加孩子
       </button>
     </div>
-    <div class="limit-notice" v-else>
-      <p>免费版最多添加1个孩子</p>
+
+    <!-- 限制提示 -->
+    <div class="limit-card" v-else>
+      <div class="limit-icon">👨‍👩‍👧</div>
+      <p>免费版最多添加 1 个孩子</p>
       <button class="btn-secondary" @click="goToUpgrade">升级解锁更多</button>
     </div>
 
+    <!-- 底部导航 -->
     <div class="nav-bar">
       <router-link to="/" class="nav-item">
         <span class="nav-icon">🏠</span>
@@ -73,7 +100,8 @@
     <!-- 确认删除弹窗 -->
     <div class="modal" v-if="showDeleteConfirm">
       <div class="modal-content">
-        <p>确定删除 {{ deleteTarget?.name }} 吗？</p>
+        <div class="modal-icon">⚠️</div>
+        <p class="modal-title">确定删除 {{ deleteTarget?.name }} 吗？</p>
         <p class="warning">删除后所有数据将无法恢复</p>
         <div class="modal-btns">
           <button @click="showDeleteConfirm = false">取消</button>
@@ -114,6 +142,7 @@ const addChild = () => {
   if (child) {
     newChildName.value = '';
     newChildAvatar.value = '👦';
+    router.push('/');
   }
 };
 
@@ -135,245 +164,208 @@ const goToUpgrade = () => router.push('/upgrade');
 
 <style scoped>
 .children-page {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding-bottom: 80px;
+  background: var(--color-bg);
 }
 
-.header-bar {
-  background: white;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.back-btn {
-  font-size: 20px;
-  color: #333;
-  text-decoration: none;
-}
-
-.header-bar h2 {
-  font-size: 17px;
-  margin: 0;
-}
-
-.upgrade-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Header */
+.unlock-btn {
+  background: var(--gradient-primary);
   color: white;
   border: none;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
 }
 
+/* Children List */
 .children-list {
-  padding: 16px;
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .child-card {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
   cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
   border: 2px solid transparent;
 }
 
 .child-card.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
 }
 
-.avatar {
-  font-size: 36px;
+.child-card:active {
+  transform: scale(0.99);
 }
 
-.info {
+.child-avatar {
+  position: relative;
+}
+
+.child-avatar .avatar {
+  font-size: 48px;
+  display: block;
+}
+
+.child-avatar .status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  border: 3px solid var(--color-bg-card);
+}
+
+.child-avatar .status.online {
+  background: #22c55e;
+}
+
+.child-info {
   flex: 1;
 }
 
-.name {
+.child-info .name {
   display: block;
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
 }
 
-.points {
-  font-size: 13px;
-  color: #999;
+.child-info .points {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
-.delete-btn {
-  background: #ffebee;
-  color: #f44336;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 8px;
+.child-info .points .icon {
   font-size: 12px;
 }
 
-.add-section {
-  margin: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
+.delete-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+  border: none;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.add-section h3 {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 12px;
+.delete-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.delete-btn:active {
+  transform: scale(0.95);
+}
+
+/* Add Section */
+.add-section {
+  margin: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.form-header h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.avatar-picker-section {
+  margin-bottom: var(--space-md);
+}
+
+.avatar-picker-section label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
 }
 
 .avatar-picker {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
+  justify-content: center;
 }
 
 .avatar-option {
+  width: 56px;
+  height: 56px;
   font-size: 28px;
-  padding: 8px;
-  border-radius: 8px;
+  background: var(--color-bg);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  background: #f5f5f5;
-}
-
-.avatar-option.selected {
-  background: #e8e4f8;
-}
-
-.input-group {
-  margin-bottom: 12px;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 15px;
-  box-sizing: border-box;
-}
-
-.limit-notice {
-  margin: 16px;
-  padding: 24px;
-  background: white;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.limit-notice p {
-  color: #999;
-  margin-bottom: 12px;
-}
-
-.btn-primary {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-}
-
-.btn-secondary {
-  background: white;
-  color: #667eea;
-  border: 1px solid #667eea;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
+  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
 }
 
-.modal-content {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  width: 80%;
-  max-width: 300px;
+.avatar-option.selected {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+/* Limit Card */
+.limit-card {
+  margin: var(--space-md);
+  padding: var(--space-xl);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
   text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+.limit-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+}
+
+.limit-card p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+/* Modal */
+.modal-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+}
+
+.modal-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
 }
 
 .warning {
-  color: #f44336;
-  font-size: 13px;
-}
-
-.modal-btns {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.modal-btns button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  background: #f5f5f5;
-}
-
-.modal-btns button.danger {
-  background: #f44336;
-  color: white;
-}
-
-.nav-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  display: flex;
-  justify-content: space-around;
-  padding: 8px 0 20px;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-decoration: none;
-  color: #999;
-  font-size: 11px;
-}
-
-.nav-item.active {
-  color: #667eea;
-}
-
-.nav-icon {
-  font-size: 20px;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-md);
 }
 </style>

@@ -6,17 +6,26 @@
       <span></span>
     </div>
 
+    <!-- 连续打卡卡片 -->
     <div class="streak-card" v-if="currentChild">
-      <div class="streak-main">
-        <span class="fire-icon">🔥</span>
-        <span class="streak-number">{{ streakDays }}</span>
-        <span class="streak-label">连续打卡</span>
+      <div class="streak-visual">
+        <div class="flame">
+          <span class="flame-emoji">🔥</span>
+        </div>
+        <div class="streak-info">
+          <span class="streak-number">{{ streakDays }}</span>
+          <span class="streak-label">连续打卡天数</span>
+        </div>
       </div>
-      <div class="streak-record">
-        <span>历史最高: {{ maxStreak }}天</span>
+      <div class="streak-stats">
+        <div class="stat">
+          <span class="stat-value">{{ maxStreak }}</span>
+          <span class="stat-label">历史最高</span>
+        </div>
       </div>
     </div>
 
+    <!-- 徽章网格 -->
     <div class="badges-section">
       <h3>全部徽章</h3>
       <div class="badges-grid">
@@ -26,29 +35,45 @@
           class="badge-item"
           :class="{ earned: hasBadge(badge.type) }"
         >
-          <div class="badge-icon" :style="{ background: hasBadge(badge.type) ? badge.color : '#e5e5e5' }">
+          <div class="badge-icon" :style="{ 
+            background: hasBadge(badge.type) ? badge.color : '#e5e7eb',
+            boxShadow: hasBadge(badge.type) ? `0 4px 12px ${badge.color}40` : 'none'
+          }">
             <span>{{ badge.icon }}</span>
           </div>
           <span class="badge-name">{{ badge.name }}</span>
-          <span class="badge-desc" v-if="hasBadge(badge.type)">{{ badge.description }}</span>
-          <span class="badge-desc locked" v-else>???</span>
+          <span class="badge-desc" :class="{ locked: !hasBadge(badge.type) }">
+            {{ hasBadge(badge.type) ? badge.description : '???' }}
+          </span>
         </div>
       </div>
     </div>
 
+    <!-- 已获得徽章列表 -->
     <div class="earned-section" v-if="earnedBadges.length > 0">
       <h3>已获得 ({{ earnedBadges.length }}/{{ allBadges.length }})</h3>
       <div class="earned-list">
         <div v-for="badge in earnedBadges" :key="badge.id" class="earned-item">
-          <span class="earned-icon">{{ getBadgeDef(badge.type)?.icon }}</span>
+          <div class="earned-icon-wrapper" :style="{ background: getBadgeDef(badge.type)?.color }">
+            <span>{{ getBadgeDef(badge.type)?.icon }}</span>
+          </div>
           <div class="earned-info">
             <span class="earned-name">{{ getBadgeDef(badge.type)?.name }}</span>
             <span class="earned-date">{{ formatDate(badge.earnedAt) }}</span>
           </div>
+          <span class="earned-check">✓</span>
         </div>
       </div>
     </div>
 
+    <!-- 空状态 -->
+    <div class="empty-state" v-if="!currentChild">
+      <div class="empty-icon">👶</div>
+      <p>请先添加孩子</p>
+      <router-link to="/children" class="btn-link">去添加</router-link>
+    </div>
+
+    <!-- 底部导航 -->
     <div class="nav-bar">
       <router-link to="/" class="nav-item">
         <span class="nav-icon">🏠</span>
@@ -101,48 +126,50 @@ const formatDate = (dateStr: string) => {
 
 <style scoped>
 .badges-page {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding-bottom: 80px;
+  background: var(--color-bg);
 }
 
-.header-bar {
-  background: white;
-  padding: 16px;
+/* Streak Card */
+.streak-card {
+  margin: var(--space-md);
+  padding: var(--space-xl);
+  background: var(--gradient-warning);
+  border-radius: var(--radius-xl);
+  color: white;
+  box-shadow: var(--shadow-xl);
+}
+
+.streak-visual {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
-.back-btn {
-  font-size: 20px;
-  color: #333;
-  text-decoration: none;
-}
-
-.header-bar h2 {
-  font-size: 17px;
-  margin: 0;
-}
-
-.streak-card {
-  margin: 16px;
-  padding: 24px;
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-  border-radius: 16px;
-  color: white;
-  text-align: center;
-}
-
-.streak-main {
+.flame {
+  width: 72px;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  backdrop-filter: blur(4px);
 }
 
-.fire-icon {
+.flame-emoji {
   font-size: 40px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.streak-info {
+  display: flex;
+  flex-direction: column;
 }
 
 .streak-number {
@@ -152,107 +179,147 @@ const formatDate = (dateStr: string) => {
 }
 
 .streak-label {
-  font-size: 18px;
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+.streak-stats {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(4px);
+}
+
+.stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: var(--font-size-xs);
   opacity: 0.9;
 }
 
-.streak-record {
-  margin-top: 12px;
-  font-size: 13px;
-  opacity: 0.8;
-}
-
+/* Badges Section */
 .badges-section {
-  margin: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
+  margin: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
 }
 
 .badges-section h3 {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 16px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin-bottom: var(--space-md);
 }
 
 .badges-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .badge-item {
   text-align: center;
-  padding: 12px 4px;
-  border-radius: 12px;
-  background: #f9f9f9;
-  transition: transform 0.2s, box-shadow 0.2s;
+  padding: var(--space-md) var(--space-xs);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  transition: all var(--transition-fast);
 }
 
 .badge-item.earned {
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-md);
 }
 
 .badge-icon {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 8px;
-  font-size: 24px;
+  margin: 0 auto var(--space-sm);
+  transition: all var(--transition-base);
+}
+
+.badge-icon span {
+  font-size: 26px;
 }
 
 .badge-name {
   display: block;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 2px;
 }
 
 .badge-desc {
   display: block;
   font-size: 10px;
-  color: #999;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
 }
 
 .badge-desc.locked {
-  color: #ccc;
+  color: var(--color-text-muted);
 }
 
+/* Earned Section */
 .earned-section {
-  margin: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
+  margin: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
 }
 
 .earned-section h3 {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 12px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin-bottom: var(--space-md);
 }
 
 .earned-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .earned-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #f9f9f9;
-  border-radius: 10px;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
 }
 
-.earned-icon {
-  font-size: 28px;
+.earned-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.earned-icon-wrapper span {
+  font-size: 24px;
 }
 
 .earned-info {
@@ -261,42 +328,49 @@ const formatDate = (dateStr: string) => {
 
 .earned-name {
   display: block;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .earned-date {
-  font-size: 12px;
-  color: #999;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
-.nav-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
+.earned-check {
+  width: 28px;
+  height: 28px;
+  background: var(--color-success);
+  color: white;
+  border-radius: 50%;
   display: flex;
-  justify-content: space-around;
-  padding: 8px 0 20px;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Empty State */
+.empty-state {
+  padding: var(--space-2xl) var(--space-md);
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 56px;
+  margin-bottom: var(--space-md);
+}
+
+.empty-state p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.btn-link {
+  display: inline-block;
+  color: var(--color-primary);
   text-decoration: none;
-  color: #999;
-  font-size: 11px;
-}
-
-.nav-item.active {
-  color: #667eea;
-}
-
-.nav-icon {
-  font-size: 20px;
+  font-weight: 500;
 }
 </style>

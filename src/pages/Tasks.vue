@@ -3,12 +3,13 @@
     <div class="header-bar">
       <router-link to="/" class="back-btn">←</router-link>
       <h2>任务管理</h2>
-      <button class="upgrade-btn" @click="goToUpgrade" v-if="!isPro">解锁</button>
+      <button class="unlock-btn" @click="goToUpgrade" v-if="!isPro">解锁</button>
       <span v-else></span>
     </div>
 
+    <!-- 孩子选择器 -->
     <div class="child-selector" v-if="children.length > 1">
-      <span 
+      <button 
         v-for="child in children" 
         :key="child.id"
         class="child-tab"
@@ -16,104 +17,151 @@
         @click="selectedChildId = child.id"
       >
         {{ child.avatar }} {{ child.name }}
-      </span>
+      </button>
     </div>
 
+    <!-- 任务列表 -->
+    <div class="tasks-container" v-if="currentChild">
       <div class="tasks-list" v-if="tasks.length > 0">
         <div v-for="task in tasks" :key="task.id" class="task-card">
-          <span class="task-icon">{{ task.icon }}</span>
+          <div class="task-icon-wrapper">
+            <span class="task-icon">{{ task.icon }}</span>
+          </div>
           <div class="task-info">
             <span class="task-name">{{ task.name }}</span>
             <div class="task-meta">
-              <span class="task-points">+{{ task.points }}分 / -{{ task.deductPoints }}分</span>
+              <span class="task-points">
+                <span class="plus">+{{ task.points }}</span>
+                <span class="minus">-{{ task.deductPoints }}</span>
+              </span>
               <span class="task-category" :style="{ color: getCategoryColor(task.category) }">
                 {{ getCategoryLabel(task.category) }}
               </span>
             </div>
           </div>
-          <button class="edit-btn" @click="editTask(task)">编辑</button>
-          <button class="delete-btn" @click="confirmDelete(task)">删除</button>
+          <div class="task-actions">
+            <button class="action-btn edit" @click="editTask(task)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+            <button class="action-btn delete" @click="confirmDelete(task)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
-
-    <div class="empty-state" v-else-if="currentChild">
-      <p>还没有任务</p>
-      <p class="sub">添加任务让孩子来完成吧</p>
+      <div class="empty-state" v-else>
+        <div class="empty-icon">📋</div>
+        <p>还没有任务</p>
+        <p class="sub">添加任务让孩子来完成吧</p>
+      </div>
     </div>
     <div class="empty-state" v-else>
+      <div class="empty-icon">👶</div>
       <p>请先添加孩子</p>
       <router-link to="/children" class="btn-link">去添加</router-link>
     </div>
 
-      <div class="add-section" v-if="currentChild">
-      <h3>{{ editingTask ? '编辑任务' : '添加任务' }}</h3>
+    <!-- 添加/编辑表单 -->
+    <div class="add-section" v-if="currentChild">
+      <div class="form-header">
+        <h3>{{ editingTask ? '编辑任务' : '添加新任务' }}</h3>
+      </div>
       
-      <div class="icon-picker">
-        <span 
-          v-for="icon in iconOptions" 
-          :key="icon"
-          class="icon-option"
-          :class="{ selected: newTask.icon === icon }"
-          @click="newTask.icon = icon"
-        >{{ icon }}</span>
+      <!-- 图标选择 -->
+      <div class="picker-section">
+        <label class="picker-label">选择图标</label>
+        <div class="icon-picker">
+          <button 
+            v-for="icon in iconOptions" 
+            :key="icon"
+            class="icon-option"
+            :class="{ selected: newTask.icon === icon }"
+            @click="newTask.icon = icon"
+          >
+            {{ icon }}
+          </button>
+        </div>
       </div>
 
-      <div class="category-picker">
-        <span 
-          v-for="cat in categoryOptions" 
-          :key="cat"
-          class="cat-option"
-          :class="{ selected: newTask.category === cat }"
-          :style="newTask.category === cat ? { background: getCategoryColor(cat), borderColor: getCategoryColor(cat) } : {}"
-          @click="newTask.category = cat"
-        >
-          {{ getCategoryLabel(cat) }}
-        </span>
+      <!-- 分类选择 -->
+      <div class="picker-section">
+        <label class="picker-label">任务分类</label>
+        <div class="category-picker">
+          <button 
+            v-for="cat in categoryOptions" 
+            :key="cat"
+            class="cat-option"
+            :class="{ selected: newTask.category === cat }"
+            :style="newTask.category === cat ? { background: getCategoryColor(cat) } : {}"
+            @click="newTask.category = cat"
+          >
+            {{ getCategoryLabel(cat) }}
+          </button>
+        </div>
       </div>
 
+      <!-- 任务名称 -->
       <div class="input-group">
-        <input v-model="newTask.name" placeholder="任务名称，如：按时起床" />
+        <input v-model="newTask.name" placeholder="输入任务名称，如：按时起床" />
       </div>
 
-      <div class="points-input">
+      <!-- 积分设置 -->
+      <div class="points-row">
         <div class="point-group">
           <label>完成加分</label>
           <div class="stepper">
-            <button @click="newTask.points = Math.max(1, newTask.points - 1)">-</button>
-            <span>{{ newTask.points }}</span>
+            <button @click="newTask.points = Math.max(1, newTask.points - 1)">−</button>
+            <span class="value">{{ newTask.points }}</span>
             <button @click="newTask.points++">+</button>
           </div>
         </div>
         <div class="point-group">
           <label>未完成扣分</label>
           <div class="stepper">
-            <button @click="newTask.deductPoints = Math.max(0, newTask.deductPoints - 1)">-</button>
-            <span>{{ newTask.deductPoints }}</span>
+            <button @click="newTask.deductPoints = Math.max(0, newTask.deductPoints - 1)">−</button>
+            <span class="value">{{ newTask.deductPoints }}</span>
             <button @click="newTask.deductPoints++">+</button>
           </div>
         </div>
       </div>
 
-      <div class="preset-tasks">
-        <span>预设：</span>
-        <button 
-          v-for="preset in presetTasks" 
-          :key="preset.name"
-          @click="applyPreset(preset)"
-        >{{ preset.icon }} {{ preset.name }}</button>
+      <!-- 预设任务 -->
+      <div class="presets-section">
+        <label class="picker-label">快速添加</label>
+        <div class="preset-tasks">
+          <button 
+            v-for="preset in presetTasks" 
+            :key="preset.name"
+            class="preset-btn"
+            @click="applyPreset(preset)"
+          >
+            <span>{{ preset.icon }}</span>
+            <span>{{ preset.name }}</span>
+          </button>
+        </div>
       </div>
 
+      <!-- 提交按钮 -->
       <button class="btn-primary" @click="saveTask" :disabled="!newTask.name.trim()">
-        {{ editingTask ? '保存' : '添加' }}
+        {{ editingTask ? '保存修改' : '添加任务' }}
       </button>
       <button class="btn-secondary" v-if="editingTask" @click="cancelEdit">取消</button>
     </div>
 
-    <div class="limit-notice" v-if="!canAddTask && currentChild">
-      <p>免费版最多添加3个任务</p>
+    <!-- 限制提示 -->
+    <div class="limit-card" v-if="!canAddTask && currentChild">
+      <div class="limit-icon">⚡</div>
+      <p>免费版最多添加 3 个任务</p>
       <button class="btn-secondary" @click="goToUpgrade">升级解锁更多</button>
     </div>
 
+    <!-- 底部导航 -->
     <div class="nav-bar">
       <router-link to="/" class="nav-item">
         <span class="nav-icon">🏠</span>
@@ -136,7 +184,9 @@
     <!-- 确认删除弹窗 -->
     <div class="modal" v-if="showDeleteConfirm">
       <div class="modal-content">
-        <p>确定删除任务 "{{ deleteTarget?.name }}" 吗？</p>
+        <div class="modal-icon">⚠️</div>
+        <p>确定删除任务</p>
+        <p class="task-name-confirm">"{{ deleteTarget?.name }}"</p>
         <div class="modal-btns">
           <button @click="showDeleteConfirm = false">取消</button>
           <button class="danger" @click="deleteTask">删除</button>
@@ -226,6 +276,7 @@ const editTask = (task: Task) => {
     deductPoints: task.deductPoints,
     category: task.category || 'other',
   };
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 const cancelEdit = () => {
@@ -258,201 +309,274 @@ const goToUpgrade = () => router.push('/upgrade');
 
 <style scoped>
 .tasks-page {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding-bottom: 80px;
+  background: var(--color-bg);
 }
 
-.header-bar {
-  background: white;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.back-btn {
-  font-size: 20px;
-  color: #333;
-  text-decoration: none;
-}
-
-.header-bar h2 {
-  font-size: 17px;
-  margin: 0;
-}
-
-.upgrade-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Header Bar */
+.unlock-btn {
+  background: var(--gradient-primary);
   color: white;
   border: none;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  box-shadow: var(--shadow-md);
 }
 
+/* Child Selector */
 .child-selector {
-  padding: 12px 16px;
+  padding: var(--space-md);
   display: flex;
-  gap: 8px;
+  gap: var(--space-sm);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .child-tab {
-  padding: 8px 16px;
-  background: white;
-  border-radius: 20px;
-  font-size: 14px;
+  padding: 10px 20px;
+  background: var(--color-bg-card);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
   white-space: nowrap;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
 }
 
 .child-tab.active {
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
+  box-shadow: var(--shadow-md);
+}
+
+/* Tasks Container */
+.tasks-container {
+  padding: 0 var(--space-md);
 }
 
 .tasks-list {
-  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .task-card {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-md);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.task-card:active {
+  transform: scale(0.99);
+}
+
+.task-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .task-icon {
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .task-info {
   flex: 1;
 }
 
-.task-name {
+.task-info .task-name {
   display: block;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .task-points {
-  font-size: 12px;
-  color: #999;
+  font-size: var(--font-size-xs);
 }
 
-.edit-btn, .delete-btn {
-  padding: 6px 10px;
-  border-radius: 6px;
+.task-points .plus {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.task-points .minus {
+  color: var(--color-text-muted);
+  margin-left: 4px;
+}
+
+.task-category {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.task-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.action-btn {
+  width: 36px;
+  height: 36px;
   border: none;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.edit-btn {
-  background: #e3f2fd;
-  color: #1976d2;
+.action-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
-.delete-btn {
-  background: #ffebee;
-  color: #f44336;
+.action-btn.edit {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary);
 }
 
+.action-btn.delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+}
+
+/* Empty State */
 .empty-state {
-  padding: 60px 20px;
+  padding: var(--space-2xl) var(--space-md);
   text-align: center;
-  color: #999;
+}
+
+.empty-icon {
+  font-size: 56px;
+  margin-bottom: var(--space-md);
+}
+
+.empty-state p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
 }
 
 .empty-state .sub {
-  font-size: 13px;
-  margin-top: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
 }
 
 .btn-link {
   display: inline-block;
-  margin-top: 12px;
-  color: #667eea;
+  margin-top: var(--space-md);
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
 }
 
+/* Add Section */
 .add-section {
-  margin: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
+  margin: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
 }
 
-.add-section h3 {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 12px;
+.form-header h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.picker-section {
+  margin-bottom: var(--space-lg);
+}
+
+.picker-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  font-weight: 500;
 }
 
 .icon-picker {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
 }
 
 .icon-option {
-  font-size: 24px;
-  padding: 8px;
-  background: #f5f5f5;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  background: var(--color-bg);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .icon-option.selected {
-  background: #e8e4f8;
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
+  transform: scale(1.1);
 }
 
 .category-picker {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
 }
 
 .cat-option {
-  padding: 6px 12px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 16px;
-  font-size: 13px;
+  flex: 1;
+  padding: 10px var(--space-sm);
+  background: var(--color-bg);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
+  text-align: center;
+  font-weight: 500;
 }
 
 .cat-option.selected {
   color: white;
-  font-weight: 500;
+  box-shadow: var(--shadow-sm);
 }
 
-.input-group {
-  margin-bottom: 16px;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 15px;
-  box-sizing: border-box;
-}
-
-.points-input {
+/* Points Row */
+.points-row {
   display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .point-group {
@@ -461,164 +585,106 @@ const goToUpgrade = () => router.push('/upgrade');
 
 .point-group label {
   display: block;
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  text-align: center;
 }
 
 .stepper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #f5f5f5;
-  padding: 4px;
-  border-radius: 8px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs);
 }
 
 .stepper button {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border: none;
-  background: white;
-  border-radius: 6px;
-  font-size: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-sm);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 
-.stepper span {
+.stepper button:active {
+  transform: scale(0.95);
+  box-shadow: none;
+}
+
+.stepper .value {
   flex: 1;
   text-align: center;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Presets */
+.presets-section {
+  margin-bottom: var(--space-lg);
 }
 
 .preset-tasks {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #666;
+  gap: var(--space-sm);
 }
 
-.preset-tasks button {
-  padding: 4px 10px;
-  background: #f5f5f5;
+.preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--color-bg);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  font-size: 13px;
+  transition: all var(--transition-fast);
 }
 
-.btn-primary {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  cursor: pointer;
-  margin-bottom: 10px;
+.preset-btn:active {
+  transform: scale(0.98);
+  background: var(--color-bg-card);
 }
 
-.btn-primary:disabled {
-  opacity: 0.5;
-}
-
-.btn-secondary {
-  width: 100%;
-  padding: 12px;
-  background: #f5f5f5;
-  color: #666;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.limit-notice {
-  margin: 16px;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
+/* Limit Card */
+.limit-card {
+  margin: var(--space-md);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
-.limit-notice p {
-  color: #999;
-  margin-bottom: 12px;
+.limit-icon {
+  font-size: 32px;
+  margin-bottom: var(--space-sm);
 }
 
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+.limit-card p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
 }
 
-.modal-content {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  width: 80%;
-  max-width: 300px;
-  text-align: center;
+/* Modal */
+.modal-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
 }
 
-.modal-btns {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.modal-btns button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  background: #f5f5f5;
-}
-
-.modal-btns button.danger {
-  background: #f44336;
-  color: white;
-}
-
-.nav-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  display: flex;
-  justify-content: space-around;
-  padding: 8px 0 20px;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-decoration: none;
-  color: #999;
-  font-size: 11px;
-}
-
-.nav-item.active {
-  color: #667eea;
-}
-
-.nav-icon {
-  font-size: 20px;
+.task-name-confirm {
+  font-weight: 600;
+  color: var(--color-text);
+  margin: var(--space-sm) 0 var(--space-md);
 }
 </style>

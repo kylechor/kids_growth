@@ -6,59 +6,90 @@
       <span></span>
     </div>
 
+    <!-- Hero Section -->
     <div class="hero-section">
-      <span class="hero-icon">🌟</span>
+      <div class="hero-icon">✨</div>
       <h1>升级成长积分宝</h1>
       <p>解锁更多能力，让孩子成长更精彩</p>
     </div>
 
-    <div class="features-section">
-      <h3>免费版 vs 专业版</h3>
-      <div class="comparison">
-        <div class="feature free">
-          <span class="label">免费版</span>
-          <ul>
-            <li>1个孩子</li>
-            <li>3个任务</li>
-            <li>基础统计</li>
-          </ul>
-        </div>
-        <div class="feature pro">
-          <span class="label">专业版</span>
-          <ul>
-            <li>无限制孩子</li>
-            <li>无限制任务</li>
-            <li>详细数据分析</li>
-            <li>数据导出</li>
-            <li>云端备份</li>
-            <li>持续更新</li>
-          </ul>
-          <span class="badge">推荐</span>
-        </div>
+    <!-- Feature Comparison -->
+    <div class="comparison-section">
+      <div class="comparison-card free">
+        <span class="plan-label">免费版</span>
+        <ul class="feature-list">
+          <li>
+            <span class="check">✓</span>
+            1个孩子
+          </li>
+          <li>
+            <span class="check">✓</span>
+            3个任务
+          </li>
+          <li>
+            <span class="check">✓</span>
+            基础统计
+          </li>
+        </ul>
+      </div>
+      <div class="comparison-card pro">
+        <div class="pro-badge">推荐</div>
+        <span class="plan-label">专业版</span>
+        <ul class="feature-list">
+          <li>
+            <span class="check">✓</span>
+            无限制孩子
+          </li>
+          <li>
+            <span class="check">✓</span>
+            无限制任务
+          </li>
+          <li>
+            <span class="check">✓</span>
+            详细数据分析
+          </li>
+          <li>
+            <span class="check">✓</span>
+            数据导出
+          </li>
+          <li>
+            <span class="check">✓</span>
+            云端备份
+          </li>
+          <li>
+            <span class="check">✓</span>
+            持续更新
+          </li>
+        </ul>
       </div>
     </div>
 
+    <!-- Price Section -->
     <div class="price-section">
       <div class="price-card">
-        <span class="price">¥{{ proPrice }}</span>
+        <span class="currency">¥</span>
+        <span class="amount">{{ proPrice }}</span>
         <span class="period">终身使用</span>
       </div>
     </div>
 
-    <div class="action-section">
-      <button class="btn-primary" @click="handlePurchase">
+    <!-- CTA Buttons -->
+    <div class="cta-section">
+      <button class="btn-primary large" @click="handlePurchase">
         立即解锁专业版
       </button>
       <p class="note">支付成功后功能即刻解锁</p>
     </div>
 
+    <!-- Demo Button -->
     <div class="demo-section">
-      <button class="btn-demo" @click="handleDemo">
+      <button class="demo-btn" @click="handleDemo">
         演示解锁（测试用）
       </button>
       <p class="demo-note">点击后可直接体验专业版全部功能</p>
     </div>
 
+    <!-- Bottom Nav -->
     <div class="nav-bar">
       <router-link to="/" class="nav-item">
         <span class="nav-icon">🏠</span>
@@ -78,12 +109,15 @@
       </router-link>
     </div>
 
-    <!-- 支付弹窗 -->
+    <!-- Pay Modal -->
     <div class="modal" v-if="showPayModal">
       <div class="modal-content">
         <h3>扫码支付</h3>
-        <div class="qrcode">
-          <div class="placeholder">支付 {{ proPrice }} 元</div>
+        <div class="qrcode-wrapper">
+          <div class="qrcode-placeholder">
+            <span>¥</span>
+            <span class="amount">{{ proPrice }}</span>
+          </div>
         </div>
         <p class="pay-note">支付完成后点击"已完成支付"</p>
         <div class="modal-btns">
@@ -93,10 +127,10 @@
       </div>
     </div>
 
-    <!-- 成功弹窗 -->
+    <!-- Success Modal -->
     <div class="modal success-modal" v-if="showSuccessModal">
-      <div class="modal-content">
-        <span class="success-icon">🎉</span>
+      <div class="modal-content success-content">
+        <div class="success-icon">🎉</div>
         <h3>解锁成功！</h3>
         <p>欢迎使用专业版</p>
         <button class="btn-primary" @click="goHome">开始使用</button>
@@ -111,7 +145,7 @@ import { useRouter } from 'vue-router';
 import { store } from '../stores/store';
 
 const router = useRouter();
-const proPrice = ref(29); // 可以调整价格
+const proPrice = ref(29);
 
 const showPayModal = ref(false);
 const showSuccessModal = ref(false);
@@ -126,7 +160,6 @@ const handleDemo = () => {
 };
 
 const confirmPayment = () => {
-  // 实际项目中这里需要对接支付SDK验证
   store.unlockPro();
   showPayModal.value = false;
   showSuccessModal.value = true;
@@ -140,300 +173,252 @@ const goHome = () => {
 
 <style scoped>
 .upgrade-page {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #f0f0f5 0%, #fff 100%);
-  padding-bottom: 80px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-.header-bar {
-  background: transparent;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.back-btn {
-  font-size: 20px;
-  color: #333;
-  text-decoration: none;
-}
-
-.header-bar h2 {
-  font-size: 17px;
-  margin: 0;
-}
-
+/* Hero Section */
 .hero-section {
   text-align: center;
-  padding: 40px 20px;
+  padding: var(--space-2xl) var(--space-lg);
 }
 
 .hero-icon {
-  font-size: 64px;
+  font-size: 72px;
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-md);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 .hero-section h1 {
-  font-size: 24px;
-  margin: 0 0 8px;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 var(--space-sm);
 }
 
 .hero-section p {
-  color: #666;
-  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
 }
 
-.features-section {
-  margin: 20px 16px;
-}
-
-.features-section h3 {
-  font-size: 14px;
-  color: #666;
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.comparison {
+/* Comparison Section */
+.comparison-section {
   display: flex;
-  gap: 12px;
+  gap: var(--space-md);
+  padding: 0 var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
-.feature {
+.comparison-card {
   flex: 1;
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
   position: relative;
+  box-shadow: var(--shadow-md);
 }
 
-.feature.pro {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.comparison-card.pro {
+  background: var(--gradient-hero);
   color: white;
 }
 
-.feature .label {
-  display: block;
-  font-size: 14px;
+.pro-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-warning);
+  color: white;
+  font-size: var(--font-size-xs);
   font-weight: 600;
-  margin-bottom: 12px;
-  text-align: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
 }
 
-.feature ul {
+.plan-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: var(--space-md);
+  opacity: 0.9;
+}
+
+.feature-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  font-size: 13px;
 }
 
-.feature ul li {
-  padding: 6px 0;
-  text-align: center;
+.feature-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
 }
 
-.feature.free ul li {
-  color: #999;
-}
-
-.badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: #ff9800;
-  color: white;
+.check {
+  width: 18px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 10px;
-  padding: 4px 8px;
-  border-radius: 10px;
+  font-weight: bold;
 }
 
+.comparison-card.free .check {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+/* Price Section */
 .price-section {
-  margin: 24px 16px;
-  text-align: center;
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  justify-content: center;
 }
 
 .price-card {
-  display: inline-block;
-  background: white;
-  padding: 20px 40px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  background: var(--color-bg-card);
+  padding: var(--space-lg) var(--space-2xl);
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  box-shadow: var(--shadow-xl);
 }
 
-.price {
-  display: block;
-  font-size: 40px;
+.currency {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.amount {
+  font-size: 48px;
   font-weight: 700;
-  color: #667eea;
-}
-
-.price::before {
-  content: '¥';
-  font-size: 20px;
+  color: var(--color-primary);
+  line-height: 1;
 }
 
 .period {
-  color: #999;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-left: var(--space-sm);
 }
 
-.action-section {
-  margin: 24px 16px;
+/* CTA Section */
+.cta-section {
+  padding: 0 var(--space-md);
   text-align: center;
 }
 
-.btn-primary {
-  width: 100%;
+.btn-primary.large {
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
+  font-size: var(--font-size-lg);
 }
 
 .note {
-  font-size: 12px;
-  color: #999;
-  margin-top: 12px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
 }
 
+/* Demo Section */
 .demo-section {
-  margin: 16px;
+  margin: var(--space-lg) var(--space-md);
+  padding: var(--space-md);
   text-align: center;
-  padding: 16px;
-  background: rgba(0,0,0,0.03);
-  border-radius: 12px;
 }
 
-.btn-demo {
+.demo-btn {
   background: none;
   border: none;
-  color: #999;
-  font-size: 14px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
   text-decoration: underline;
   cursor: pointer;
 }
 
 .demo-note {
-  font-size: 11px;
-  color: #bbb;
-  margin-top: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  opacity: 0.7;
+  margin-top: var(--space-xs);
 }
 
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.modal-content {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  width: 85%;
-  max-width: 320px;
-  text-align: center;
-}
-
+/* Modal */
 .modal-content h3 {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-lg);
 }
 
-.qrcode {
-  background: #f5f5f5;
-  padding: 30px;
-  margin-bottom: 16px;
-  border-radius: 8px;
+.qrcode-wrapper {
+  background: var(--color-bg);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-md);
 }
 
-.placeholder {
-  font-size: 14px;
-  color: #666;
-}
-
-.pay-note {
-  font-size: 13px;
-  color: #999;
-  margin-bottom: 16px;
-}
-
-.modal-btns {
-  display: flex;
-  gap: 12px;
-}
-
-.modal-btns button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  background: #f5f5f5;
-}
-
-.modal-btns button.confirm {
-  background: #4caf50;
-  color: white;
-}
-
-.success-modal .modal-content {
-  padding: 40px 24px;
-}
-
-.success-icon {
-  font-size: 64px;
-  display: block;
-  margin-bottom: 16px;
-}
-
-.success-modal h3 {
-  font-size: 20px;
-}
-
-.success-modal p {
-  color: #666;
-  margin-bottom: 24px;
-}
-
-.nav-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  display: flex;
-  justify-content: space-around;
-  padding: 8px 0 20px;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
-
-.nav-item {
+.qrcode-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  text-decoration: none;
-  color: #999;
-  font-size: 11px;
+  color: var(--color-text-muted);
 }
 
-.nav-item.active {
-  color: #667eea;
+.qrcode-placeholder .amount {
+  font-size: var(--font-size-2xl);
+  color: var(--color-text);
 }
 
-.nav-icon {
-  font-size: 20px;
+.pay-note {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.modal-btns button.confirm {
+  background: var(--color-success);
+  color: white;
+}
+
+/* Success Modal */
+.success-content {
+  padding: var(--space-xl);
+}
+
+.success-icon {
+  font-size: 72px;
+  display: block;
+  margin-bottom: var(--space-md);
+  animation: celebrate 0.6s ease;
+}
+
+@keyframes celebrate {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.success-content h3 {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--space-xs);
+}
+
+.success-content p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-lg);
 }
 </style>

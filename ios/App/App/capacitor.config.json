@@ -1,0 +1,8 @@
+{
+	"appId": "com.growpoints.app",
+	"appName": "成长积分宝",
+	"webDir": "dist",
+	"packageClassList": [
+		"HapticsPlugin"
+	]
+}

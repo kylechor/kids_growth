@@ -3,26 +3,46 @@
     <div class="header-bar">
       <router-link to="/" class="back-btn">←</router-link>
       <h2>奖励兑换</h2>
-      <router-link to="/history" class="history-btn">记录</router-link>
+      <router-link to="/history" class="history-btn" v-if="redemptions.length > 0">记录</router-link>
+      <span v-else></span>
     </div>
 
-    <div class="current-points" v-if="currentChild">
-      <span class="label">{{ currentChild.name }} 当前积分</span>
-      <span class="value">{{ totalPoints }}</span>
+    <!-- 积分展示 -->
+    <div class="points-card" v-if="currentChild">
+      <div class="points-main">
+        <span class="points-label">{{ currentChild.name }} 的积分</span>
+        <div class="points-value">
+          <span class="number">{{ totalPoints }}</span>
+          <span class="unit">分</span>
+        </div>
+      </div>
+      <div class="points-icon">⭐</div>
     </div>
 
+    <!-- 奖励列表 -->
     <div class="rewards-section">
-      <h3>可用奖励</h3>
+      <div class="section-header">
+        <h3>可用奖励</h3>
+        <button class="add-btn" @click="showAddReward = !showAddReward">
+          {{ showAddReward ? '收起' : '+ 添加' }}
+        </button>
+      </div>
+
       <div class="rewards-list" v-if="rewards.length > 0">
         <div v-for="reward in rewards" :key="reward.id" class="reward-card">
-          <span class="reward-icon">{{ reward.icon }}</span>
+          <div class="reward-icon-wrapper">
+            <span class="reward-icon">{{ reward.icon }}</span>
+          </div>
           <div class="reward-info">
             <span class="reward-name">{{ reward.name }}</span>
-            <span class="reward-points">{{ reward.points }} 积分</span>
+            <span class="reward-points">
+              <span class="icon">⭐</span>
+              {{ reward.points }} 积分
+            </span>
           </div>
           <button 
             class="redeem-btn"
-            :disabled="totalPoints < reward.points"
+            :class="{ disabled: totalPoints < reward.points }"
             @click="confirmRedeem(reward)"
           >
             兑换
@@ -30,41 +50,50 @@
         </div>
       </div>
       <div class="empty-rewards" v-else>
+        <div class="empty-icon">🎁</div>
         <p>还没有奖励</p>
         <p class="sub">添加孩子想要的奖励吧</p>
       </div>
 
-      <button class="btn-outline" @click="showAddReward = !showAddReward">
-        {{ showAddReward ? '取消添加' : '+ 添加奖励' }}
-      </button>
-
-      <div class="add-reward-form" v-if="showAddReward">
-        <div class="icon-picker">
-          <span 
-            v-for="icon in iconOptions" 
-            :key="icon"
-            class="icon-option"
-            :class="{ selected: newReward.icon === icon }"
-            @click="newReward.icon = icon"
-          >{{ icon }}</span>
+      <!-- 添加奖励表单 -->
+      <div class="add-form" v-if="showAddReward">
+        <div class="form-title">添加新奖励</div>
+        
+        <div class="picker-section">
+          <label>选择图标</label>
+          <div class="icon-picker">
+            <button 
+              v-for="icon in iconOptions" 
+              :key="icon"
+              class="icon-option"
+              :class="{ selected: newReward.icon === icon }"
+              @click="newReward.icon = icon"
+            >
+              {{ icon }}
+            </button>
+          </div>
         </div>
+
         <div class="input-group">
           <input v-model="newReward.name" placeholder="奖励名称，如：去游乐园" />
         </div>
+
         <div class="points-input">
           <label>所需积分</label>
           <div class="stepper">
-            <button @click="newReward.points = Math.max(10, newReward.points - 10)">-</button>
-            <span>{{ newReward.points }}</span>
+            <button @click="newReward.points = Math.max(10, newReward.points - 10)">−</button>
+            <span class="value">{{ newReward.points }}</span>
             <button @click="newReward.points += 10">+</button>
           </div>
         </div>
+
         <button class="btn-primary" @click="addReward" :disabled="!newReward.name.trim()">
           确认添加
         </button>
       </div>
     </div>
 
+    <!-- 兑换记录 -->
     <div class="history-section" v-if="redemptions.length > 0">
       <h3>兑换记录</h3>
       <div class="history-list">
@@ -79,6 +108,7 @@
       </div>
     </div>
 
+    <!-- 底部导航 -->
     <div class="nav-bar">
       <router-link to="/" class="nav-item">
         <span class="nav-icon">🏠</span>
@@ -101,8 +131,13 @@
     <!-- 确认兑换弹窗 -->
     <div class="modal" v-if="showRedeemConfirm">
       <div class="modal-content">
-        <p>确认兑换 "{{ redeemTarget?.name }}"?</p>
-        <p class="points-info">将消耗 {{ redeemTarget?.points }} 积分</p>
+        <div class="modal-icon">{{ redeemTarget?.icon }}</div>
+        <p class="modal-title">确认兑换</p>
+        <p class="reward-name-display">{{ redeemTarget?.name }}</p>
+        <div class="points-preview">
+          <span class="icon">⭐</span>
+          <span class="amount">-{{ redeemTarget?.points }}</span>
+        </div>
         <div class="modal-btns">
           <button @click="showRedeemConfirm = false">取消</button>
           <button class="confirm" @click="redeem">确认兑换</button>
@@ -161,87 +196,123 @@ const formatDate = (dateStr: string) => {
 
 <style scoped>
 .rewards-page {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding-bottom: 80px;
+  background: var(--color-bg);
 }
 
-.header-bar {
-  background: white;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.back-btn {
-  font-size: 20px;
-  color: #333;
-  text-decoration: none;
-}
-
-.header-bar h2 {
-  font-size: 17px;
-  margin: 0;
-}
-
+/* Header */
 .history-btn {
-  font-size: 13px;
-  color: #667eea;
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
   text-decoration: none;
+  font-weight: 500;
+  padding: 4px 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: var(--radius-full);
 }
 
-.current-points {
-  margin: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+/* Points Card */
+.points-card {
+  margin: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--gradient-hero);
+  border-radius: var(--radius-xl);
   color: white;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-lg);
 }
 
-.current-points .label {
-  display: block;
-  font-size: 13px;
+.points-main .points-label {
+  font-size: var(--font-size-sm);
   opacity: 0.9;
 }
 
-.current-points .value {
-  font-size: 40px;
+.points-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.points-value .number {
+  font-size: 48px;
   font-weight: 700;
+  line-height: 1;
 }
 
+.points-value .unit {
+  font-size: var(--font-size-lg);
+  opacity: 0.8;
+}
+
+.points-icon {
+  font-size: 56px;
+  opacity: 0.8;
+}
+
+/* Rewards Section */
 .rewards-section {
-  margin: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
+  margin: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
 }
 
-.rewards-section h3 {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 12px;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.section-header h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.add-btn {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  background: rgba(99, 102, 241, 0.1);
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-weight: 500;
 }
 
 .rewards-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
 }
 
 .reward-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #f9f9f9;
-  border-radius: 10px;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+}
+
+.reward-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .reward-icon {
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .reward-info {
@@ -250,168 +321,184 @@ const formatDate = (dateStr: string) => {
 
 .reward-name {
   display: block;
-  font-size: 15px;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 2px;
 }
 
 .reward-points {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.reward-points .icon {
   font-size: 12px;
-  color: #999;
 }
 
 .redeem-btn {
-  padding: 8px 16px;
-  background: #4caf50;
+  padding: 10px 20px;
+  background: var(--color-success);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 
-.redeem-btn:disabled {
-  background: #ccc;
+.redeem-btn.disabled {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.redeem-btn:not(.disabled):active {
+  transform: scale(0.95);
 }
 
 .empty-rewards {
   text-align: center;
-  padding: 30px;
-  color: #999;
+  padding: var(--space-xl);
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: var(--space-md);
+}
+
+.empty-rewards p {
+  color: var(--color-text-secondary);
 }
 
 .empty-rewards .sub {
-  font-size: 13px;
-  margin-top: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-top: 4px;
 }
 
-.btn-outline {
-  width: 100%;
-  padding: 12px;
-  background: white;
-  color: #667eea;
-  border: 1px dashed #667eea;
-  border-radius: 10px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-bottom: 16px;
+/* Add Form */
+.add-form {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
 }
 
-.btn-primary {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  cursor: pointer;
+.form-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--space-md);
+  text-align: center;
 }
 
-.btn-primary:disabled {
-  opacity: 0.5;
+.picker-section {
+  margin-bottom: var(--space-md);
 }
 
-.add-reward-form {
-  padding-top: 16px;
-  border-top: 1px solid #eee;
+.picker-section label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
 }
 
 .icon-picker {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--space-sm);
 }
 
 .icon-option {
-  font-size: 24px;
-  padding: 8px;
-  background: #f5f5f5;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  background: var(--color-bg);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .icon-option.selected {
-  background: #e8e4f8;
-}
-
-.input-group {
-  margin-bottom: 16px;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 15px;
-  box-sizing: border-box;
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--color-primary);
 }
 
 .points-input {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-md);
 }
 
 .points-input label {
   display: block;
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
 }
 
 .stepper {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: #f5f5f5;
-  padding: 4px 12px;
-  border-radius: 8px;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs);
   width: fit-content;
 }
 
 .stepper button {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: none;
-  background: white;
-  border-radius: 8px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-sm);
   font-size: 18px;
-  cursor: pointer;
-}
-
-.stepper span {
-  font-size: 20px;
   font-weight: 600;
-  min-width: 60px;
-  text-align: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
 }
 
+.stepper .value {
+  min-width: 80px;
+  text-align: center;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* History Section */
 .history-section {
-  margin: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
+  margin: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
 }
 
 .history-section h3 {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 12px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin-bottom: var(--space-md);
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .history-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px;
-  background: #f9f9f9;
-  border-radius: 8px;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
 }
 
 .record-icon {
@@ -424,93 +511,61 @@ const formatDate = (dateStr: string) => {
 
 .record-name {
   display: block;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
 }
 
 .record-date {
-  font-size: 12px;
-  color: #999;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .record-points {
-  color: #f44336;
-  font-weight: 600;
+  color: var(--color-danger);
+  font-weight: 700;
+  font-size: var(--font-size-base);
 }
 
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
+/* Modal */
+.modal-icon {
+  font-size: 64px;
+  margin-bottom: var(--space-md);
+}
+
+.modal-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.reward-name-display {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.points-preview {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  gap: 8px;
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
 }
 
-.modal-content {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  width: 80%;
-  max-width: 300px;
-  text-align: center;
+.points-preview .icon {
+  font-size: 20px;
 }
 
-.points-info {
-  color: #666;
-  font-size: 14px;
-}
-
-.modal-btns {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.modal-btns button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  background: #f5f5f5;
+.points-preview .amount {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-danger);
 }
 
 .modal-btns button.confirm {
-  background: #4caf50;
+  background: var(--color-success);
   color: white;
-}
-
-.nav-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  display: flex;
-  justify-content: space-around;
-  padding: 8px 0 20px;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-decoration: none;
-  color: #999;
-  font-size: 11px;
-}
-
-.nav-item.active {
-  color: #667eea;
-}
-
-.nav-icon {
-  font-size: 20px;
 }
 </style>
