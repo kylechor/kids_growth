@@ -162,24 +162,7 @@
     </div>
 
     <!-- 底部导航 -->
-    <div class="nav-bar">
-      <router-link to="/" class="nav-item">
-        <span class="nav-icon">🏠</span>
-        <span>首页</span>
-      </router-link>
-      <router-link to="/children" class="nav-item">
-        <span class="nav-icon">👶</span>
-        <span>孩子</span>
-      </router-link>
-      <router-link to="/tasks" class="nav-item active">
-        <span class="nav-icon">📋</span>
-        <span>任务</span>
-      </router-link>
-      <router-link to="/rewards" class="nav-item">
-        <span class="nav-icon">🎁</span>
-        <span>奖励</span>
-      </router-link>
-    </div>
+    <BottomNav />
 
     <!-- 确认删除弹窗 -->
     <div class="modal" v-if="showDeleteConfirm">
@@ -202,6 +185,7 @@ import { useRouter } from 'vue-router';
 import { store } from '../stores/store';
 import type { Task, TaskCategory } from '../types';
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '../types';
+import BottomNav from '../components/BottomNav.vue';
 
 const router = useRouter();
 const isPro = computed(() => store.isPro);
@@ -501,6 +485,7 @@ const goToUpgrade = () => router.push('/upgrade');
   background: var(--color-bg-card);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
+  padding-bottom: 80px;
 }
 
 .form-header h3 {

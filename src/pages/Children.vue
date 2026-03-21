@@ -78,24 +78,7 @@
     </div>
 
     <!-- 底部导航 -->
-    <div class="nav-bar">
-      <router-link to="/" class="nav-item">
-        <span class="nav-icon">🏠</span>
-        <span>首页</span>
-      </router-link>
-      <router-link to="/children" class="nav-item active">
-        <span class="nav-icon">👶</span>
-        <span>孩子</span>
-      </router-link>
-      <router-link to="/tasks" class="nav-item">
-        <span class="nav-icon">📋</span>
-        <span>任务</span>
-      </router-link>
-      <router-link to="/rewards" class="nav-item">
-        <span class="nav-icon">🎁</span>
-        <span>奖励</span>
-      </router-link>
-    </div>
+    <BottomNav />
 
     <!-- 确认删除弹窗 -->
     <div class="modal" v-if="showDeleteConfirm">
@@ -117,6 +100,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { store } from '../stores/store';
 import type { Child } from '../types';
+import BottomNav from '../components/BottomNav.vue';
 
 const router = useRouter();
 const isPro = computed(() => store.isPro);
@@ -335,6 +319,7 @@ const goToUpgrade = () => router.push('/upgrade');
 .limit-card {
   margin: var(--space-md);
   padding: var(--space-xl);
+  padding-bottom: 80px;
   background: var(--color-bg-card);
   border-radius: var(--radius-xl);
   text-align: center;

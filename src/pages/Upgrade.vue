@@ -90,24 +90,7 @@
     </div>
 
     <!-- Bottom Nav -->
-    <div class="nav-bar">
-      <router-link to="/" class="nav-item">
-        <span class="nav-icon">🏠</span>
-        <span>首页</span>
-      </router-link>
-      <router-link to="/children" class="nav-item">
-        <span class="nav-icon">👶</span>
-        <span>孩子</span>
-      </router-link>
-      <router-link to="/tasks" class="nav-item">
-        <span class="nav-icon">📋</span>
-        <span>任务</span>
-      </router-link>
-      <router-link to="/rewards" class="nav-item">
-        <span class="nav-icon">🎁</span>
-        <span>奖励</span>
-      </router-link>
-    </div>
+    <BottomNav />
 
     <!-- Pay Modal -->
     <div class="modal" v-if="showPayModal">
@@ -143,6 +126,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { store } from '../stores/store';
+import BottomNav from '../components/BottomNav.vue';
 
 const router = useRouter();
 const proPrice = ref(29);
@@ -338,6 +322,7 @@ const goHome = () => {
 /* Demo Section */
 .demo-section {
   margin: var(--space-lg) var(--space-md);
+  margin-bottom: 100px;
   padding: var(--space-md);
   text-align: center;
 }

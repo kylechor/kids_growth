@@ -109,24 +109,7 @@
     </div>
 
     <!-- 底部导航 -->
-    <div class="nav-bar">
-      <router-link to="/" class="nav-item">
-        <span class="nav-icon">🏠</span>
-        <span>首页</span>
-      </router-link>
-      <router-link to="/children" class="nav-item">
-        <span class="nav-icon">👶</span>
-        <span>孩子</span>
-      </router-link>
-      <router-link to="/tasks" class="nav-item">
-        <span class="nav-icon">📋</span>
-        <span>任务</span>
-      </router-link>
-      <router-link to="/rewards" class="nav-item active">
-        <span class="nav-icon">🎁</span>
-        <span>奖励</span>
-      </router-link>
-    </div>
+    <BottomNav />
 
     <!-- 确认兑换弹窗 -->
     <div class="modal" v-if="showRedeemConfirm">
@@ -151,6 +134,7 @@
 import { ref, computed } from 'vue';
 import { store } from '../stores/store';
 import type { Reward } from '../types';
+import BottomNav from '../components/BottomNav.vue';
 
 const currentChild = computed(() => store.getCurrentChild());
 const rewards = computed(() => store.getRewards());
@@ -474,6 +458,7 @@ const formatDate = (dateStr: string) => {
 .history-section {
   margin: var(--space-md);
   padding: var(--space-lg);
+  padding-bottom: 80px;
   background: var(--color-bg-card);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);

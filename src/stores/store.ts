@@ -1,4 +1,5 @@
 import type { Child, Task, DailyRecord, Reward, Redemption, AppState, Badge, TaskCategory } from '../types';
+import { ref } from 'vue';
 
 const STORAGE_KEY = 'grow_points_data';
 
@@ -18,6 +19,15 @@ function generateId(): string {
 
 function getToday(): string {
   return new Date().toISOString().split('T')[0];
+}
+
+// 触发更新通知
+const updateTrigger = ref(0);
+export function notifyUpdate() {
+  updateTrigger.value++;
+}
+export function getUpdateCount() {
+  return updateTrigger.value;
 }
 
 class Store {
@@ -49,6 +59,8 @@ class Store {
 
   private save(): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+    // 触发更新
+    notifyUpdate();
   }
 
   // App State
@@ -68,15 +80,18 @@ class Store {
 
   // Children
   getChildren(): Child[] {
+    getUpdateCount(); // 触发响应式
     return this.data.children;
   }
 
   getChild(id: string): Child | undefined {
+    getUpdateCount(); // 触发响应式
     return this.data.children.find(c => c.id === id);
   }
 
   getCurrentChild(): Child | undefined {
     if (!this.data.appState.currentChildId) return undefined;
+    getUpdateCount(); // 触发响应式
     return this.getChild(this.data.appState.currentChildId);
   }
 
@@ -119,11 +134,13 @@ class Store {
   }
 
   canAddChild(): boolean {
+    getUpdateCount(); // 触发响应式
     return this.data.appState.isPro || this.data.children.length < 1;
   }
 
   // Tasks
   getTasks(childId: string): Task[] {
+    getUpdateCount(); // 触发响应式
     return this.data.tasks.filter(t => t.childId === childId);
   }
 
@@ -160,12 +177,14 @@ class Store {
   }
 
   canAddTask(childId: string): boolean {
+    getUpdateCount(); // 触发响应式
     const childTasks = this.getTasks(childId);
     return this.data.appState.isPro || childTasks.length < 3;
   }
 
   // Daily Records
   getRecords(childId: string, date?: string): DailyRecord[] {
+    getUpdateCount(); // 触发响应式
     return this.data.records.filter(r => {
       if (r.childId !== childId) return false;
       if (date && r.date !== date) return false;
@@ -222,6 +241,7 @@ class Store {
 
   // Points Calculation
   getTodayPoints(childId: string): number {
+    getUpdateCount(); // 触发响应式
     const today = getToday();
     return this.data.records
       .filter(r => r.childId === childId && r.date === today)
@@ -229,6 +249,7 @@ class Store {
   }
 
   getTotalPoints(childId: string): number {
+    getUpdateCount(); // 触发响应式
     const child = this.getChild(childId);
     if (!child) return 0;
 
@@ -274,8 +295,99 @@ class Store {
       });
   }
 
+  // 获取某月的打卡状态
+  getMonthCheckins(childId: string, year: number, month: number): { date: string; completed: boolean; partial: boolean }[] {
+    getUpdateCount();
+    const tasks = this.getTasks(childId);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const result: { date: string; completed: boolean; partial: boolean }[] = [];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const dateStr = date.toISOString().split('T')[0];
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+
+      // 只显示今天及之前的数据
+      if (dateStr > todayStr) {
+        result.push({ date: dateStr, completed: false, partial: false });
+        continue;
+      }
+
+      const dayRecords = this.data.records.filter(r => r.childId === childId && r.date === dateStr);
+      const hasRecords = dayRecords.length > 0;
+
+      if (!hasRecords || tasks.length === 0) {
+        result.push({ date: dateStr, completed: false, partial: false });
+        continue;
+      }
+
+      // 检查是否全部完成
+      const allCompleted = tasks.every(t =>
+        dayRecords.some(r => r.taskId === t.id && r.completed)
+      );
+
+      // 检查是否有部分完成
+      const partial = dayRecords.some(r => r.completed);
+
+      result.push({ date: dateStr, completed: allCompleted, partial: !allCompleted && partial });
+    }
+
+    return result;
+  }
+
+  // 获取本月打卡天数
+  getMonthCheckinDays(childId: string): number {
+    const today = new Date();
+    const monthCheckins = this.getMonthCheckins(childId, today.getFullYear(), today.getMonth());
+    return monthCheckins.filter(c => c.completed || c.partial).length;
+  }
+
+  // 获取累计记录天数
+  getTotalRecordDays(childId: string): number {
+    getUpdateCount();
+    const dates = new Set(
+      this.data.records
+        .filter(r => r.childId === childId)
+        .map(r => r.date)
+    );
+    return dates.size;
+  }
+
+  // 获取本周完成的任务数
+  getWeekTaskStats(childId: string): { completed: number; total: number; points: number } {
+    getUpdateCount();
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    
+    let completed = 0;
+    let total = 0;
+    let points = 0;
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      const dayRecords = this.data.records.filter(r => r.childId === childId && r.date === dateStr);
+      
+      dayRecords.forEach(r => {
+        if (r.completed) {
+          completed++;
+          points += r.points;
+        }
+        total++;
+      });
+    }
+
+    return { completed, total, points };
+  }
+
   // Rewards
   getRewards(): Reward[] {
+    getUpdateCount(); // 触发响应式
     return this.data.rewards;
   }
 
@@ -296,9 +408,8 @@ class Store {
 
   // Redemptions
   getRedemptions(childId: string): Redemption[] {
-    return this.data.redemptions
-      .filter(r => r.childId === childId)
-      .sort((a, b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime());
+    getUpdateCount(); // 触发响应式
+    return this.data.redemptions.filter(r => r.childId === childId);
   }
 
   // Badges
@@ -364,6 +475,7 @@ class Store {
   }
 
   getStreak(childId: string): number {
+    getUpdateCount(); // 触发响应式
     const child = this.getChild(childId);
     return child?.streakDays || 0;
   }
