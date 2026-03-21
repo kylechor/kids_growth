@@ -110,7 +110,7 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
 ];
 
 export const DEFAULT_TASKS: Omit<Task, 'id' | 'childId'>[] = [
-  { name: '按时起床', points: 5, deductPoints: 3, icon: '🌅' },
-  { name: '认真作业', points: 10, deductPoints: 5, icon: '📚' },
-  { name: '主动阅读', points: 5, deductPoints: 2, icon: '📖' },
+  { name: '按时起床', points: 5, deductPoints: 3, icon: '🌅', category: 'life' },
+  { name: '认真作业', points: 10, deductPoints: 5, icon: '📚', category: 'study' },
+  { name: '主动阅读', points: 5, deductPoints: 2, icon: '📖', category: 'study' },
 ];
