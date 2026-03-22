@@ -296,4 +296,69 @@ body {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
+
+/* ============================================
+   PC Responsive Layout
+   ============================================ */
+@media (min-width: 768px) {
+  /* Container - Center content on larger screens */
+  #app {
+    max-width: 480px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+    min-height: 100vh;
+  }
+
+  /* Better spacing on desktop */
+  .page {
+    padding-bottom: 90px;
+  }
+
+  /* Larger cards on desktop */
+  .card {
+    padding: var(--space-lg);
+    border-radius: var(--radius-xl);
+  }
+
+  /* Nav bar on desktop - fixed at bottom of container */
+  .nav-bar {
+    max-width: 480px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  /* Increase font sizes slightly for readability */
+  :root {
+    --font-size-base: 16px;
+    --font-size-sm: 14px;
+  }
+
+  /* Modal optimization */
+  .modal-content {
+    max-width: 400px;
+    padding: var(--space-xl);
+  }
+
+  /* Form inputs larger on desktop */
+  .input-group input {
+    padding: 16px var(--space-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  #app {
+    max-width: 520px;
+  }
+
+  /* Even more generous spacing */
+  .page {
+    padding: var(--space-md);
+    padding-bottom: 100px;
+  }
+
+  .nav-bar {
+    max-width: 520px;
+  }
+}
 </style>
