@@ -24,7 +24,7 @@
     <!-- 主内容区 -->
     <div class="main-content" v-if="currentChild">
       
-      <!-- GitHub风格打卡日历 -->
+      <!-- GitHub风格打卡日历 - 单行 -->
       <div class="calendar-section">
         <div class="calendar-header">
           <div class="calendar-title">
@@ -33,12 +33,8 @@
           </div>
           <div class="month-badge">{{ monthCheckinDays }}/{{ daysInMonth }} 天</div>
         </div>
-        <!-- 星期标签 -->
-        <div class="weekday-row">
-          <span v-for="day in ['一','二','三','四','五','六','日']" :key="day" class="weekday-label">{{ day }}</span>
-        </div>
-        <!-- GitHub风格网格 -->
-        <div class="github-grid">
+        <!-- 单行横向展示 -->
+        <div class="github-row">
           <div 
             v-for="day in monthDaysArray" 
             :key="day.date"
@@ -54,6 +50,7 @@
             }"
             :title="day.day > 0 ? `${day.day}日: ${day.completedPercent}%` : ''"
           >
+            <span class="day-label" v-if="day.isToday || day.day === 1">{{ day.day }}</span>
           </div>
         </div>
         <!-- 图例 -->
@@ -561,31 +558,24 @@ onMounted(loadRecords);
   font-weight: 600;
 }
 
-/* GitHub风格日历 */
-.weekday-row {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.weekday-label {
-  text-align: center;
-  font-size: 10px;
-  color: var(--color-text-muted);
-}
-
-.github-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+/* GitHub风格日历 - 单行 */
+.github-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  overflow-x: auto;
+  padding: 4px 0;
 }
 
 .github-cell {
-  aspect-ratio: 1;
+  min-width: 20px;
+  height: 20px;
   border-radius: 3px;
   background: #ebedf0;
   transition: transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .github-cell.level-0 {

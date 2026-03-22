@@ -4,10 +4,6 @@
       <span class="nav-icon">🏠</span>
       <span>首页</span>
     </router-link>
-    <router-link to="/badges" class="nav-item" :class="{ active: $route.path === '/badges' }">
-      <span class="nav-icon">🏆</span>
-      <span>成就</span>
-    </router-link>
     <router-link to="/tasks" class="nav-item" :class="{ active: $route.path === '/tasks' }">
       <span class="nav-icon">📋</span>
       <span>任务</span>
@@ -16,9 +12,9 @@
       <span class="nav-icon">🎁</span>
       <span>奖励</span>
     </router-link>
-    <router-link to="/children" class="nav-item" :class="{ active: $route.path === '/children' }">
-      <span class="nav-icon">👶</span>
-      <span>孩子</span>
+    <router-link to="/badges" class="nav-item" :class="{ active: $route.path === '/badges' }">
+      <span class="nav-icon">🏆</span>
+      <span>成就</span>
     </router-link>
   </div>
 </template>
@@ -52,9 +48,9 @@
   color: var(--color-text-muted, #94a3b8);
   font-size: 10px;
   font-weight: 500;
-  padding: 4px 12px;
+  padding: 4px 16px;
   transition: all 0.15s ease;
-  min-width: 50px;
+  min-width: 60px;
 }
 
 .nav-item .nav-icon {
