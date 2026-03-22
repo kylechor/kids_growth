@@ -1,8 +1,9 @@
 import type { 
   Child, Task, DailyRecord, Reward, Redemption, AppState, Badge, TaskCategory,
   Project, GeneratedProjectTask, ProjectStory, Reminder, StudyTask, AIProjectResult,
-  StudyRecord, Score, ScoreType
+  StudyRecord, Score, ScoreType, DailyChallenge, LevelDefinition, LevelProgress
 } from '../types';
+import { LEVEL_DEFINITIONS } from '../types';
 import { ref } from 'vue';
 
 const STORAGE_KEY = 'grow_points_data';
@@ -24,6 +25,8 @@ interface StorageData {
   studyTasks: StudyTask[];
   studyRecords: StudyRecord[];
   scores: Score[];
+  // 每日挑战
+  dailyChallenges: DailyChallenge[];
 }
 
 function generateId(): string {
@@ -59,6 +62,7 @@ class Store {
       if (!this.data.studyTasks) this.data.studyTasks = [];
       if (!this.data.studyRecords) this.data.studyRecords = [];
       if (!this.data.scores) this.data.scores = [];
+      if (!this.data.dailyChallenges) this.data.dailyChallenges = [];
       this.data.children = this.data.children.map(c => ({
         ...c,
         streakDays: c.streakDays || 0,
@@ -80,6 +84,7 @@ class Store {
         studyTasks: [],
         studyRecords: [],
         scores: [],
+        dailyChallenges: [],
       };
     }
   }
@@ -1053,6 +1058,117 @@ class Store {
     }));
   }
 
+  // ============== Level System Methods ==============
+
+  getLevelProgress(childId: string): LevelProgress {
+    const totalPoints = this.getTotalPoints(childId);
+    
+    // 找到当前等级
+    let currentLevel = LEVEL_DEFINITIONS[0];
+    for (const level of LEVEL_DEFINITIONS) {
+      if (totalPoints >= level.minPoints) {
+        currentLevel = level;
+      } else {
+        break;
+      }
+    }
+    
+    const pointsInLevel = totalPoints - currentLevel.minPoints;
+    const pointsNeeded = currentLevel.maxPoints === Infinity ? 0 : currentLevel.maxPoints - currentLevel.minPoints;
+    const progressPercent = pointsNeeded > 0 ? Math.round((pointsInLevel / pointsNeeded) * 100) : 100;
+    const pointsToNextLevel = currentLevel.maxPoints === Infinity ? 0 : currentLevel.maxPoints - totalPoints;
+    
+    return {
+      currentLevel: currentLevel.level,
+      currentPoints: totalPoints,
+      pointsToNextLevel,
+      progressPercent,
+    };
+  }
+
+  getLevelInfo(childId: string): LevelDefinition {
+    const progress = this.getLevelProgress(childId);
+    return LEVEL_DEFINITIONS.find(l => l.level === progress.currentLevel) || LEVEL_DEFINITIONS[0];
+  }
+
+  // ============== Daily Challenge Methods ==============
+
+  getDailyChallenges(childId: string, date?: string): DailyChallenge[] {
+    getUpdateCount();
+    const targetDate = date || getToday();
+    return this.data.dailyChallenges
+      .filter(c => c.childId === childId && c.date === targetDate)
+      .sort((a, b) => {
+        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        return b.rewardPoints - a.rewardPoints;
+      });
+  }
+
+  generateDailyChallenges(childId: string): DailyChallenge[] {
+    const today = getToday();
+    
+    // 检查今天是否已经有挑战
+    const existingChallenges = this.getDailyChallenges(childId, today);
+    if (existingChallenges.length > 0) {
+      return existingChallenges;
+    }
+    
+    // 生成3个随机挑战
+    const challengeTemplates = [
+      { type: 'quick' as const, title: '快速行动', description: '在10分钟内完成一项小任务', targetValue: 1, rewardPoints: 5 },
+      { type: 'study' as const, title: '学习达人', description: '完成30分钟的学习', targetValue: 30, rewardPoints: 15 },
+      { type: 'exercise' as const, title: '运动一刻', description: '进行15分钟的运动', targetValue: 15, rewardPoints: 10 },
+      { type: 'creative' as const, title: '创意时刻', description: '完成一项创意任务', targetValue: 1, rewardPoints: 8 },
+      { type: 'social' as const, title: '协作小帮手', description: '帮助家人做一件事', targetValue: 1, rewardPoints: 5 },
+      { type: 'study' as const, title: '阅读时间', description: '阅读书籍15分钟', targetValue: 15, rewardPoints: 8 },
+      { type: 'quick' as const, title: '整洁小能手', description: '整理好自己的书桌', targetValue: 1, rewardPoints: 5 },
+      { type: 'exercise' as const, title: '户外探险', description: '到户外活动20分钟', targetValue: 20, rewardPoints: 12 },
+    ];
+    
+    // 随机选择3个不重复的挑战
+    const shuffled = [...challengeTemplates].sort(() => Math.random() - 0.5);
+    const selectedChallenges = shuffled.slice(0, 3);
+    
+    const newChallenges: DailyChallenge[] = selectedChallenges.map(template => ({
+      id: generateId(),
+      childId,
+      date: today,
+      type: template.type,
+      title: template.title,
+      description: template.description,
+      targetValue: template.targetValue,
+      currentValue: 0,
+      rewardPoints: template.rewardPoints,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    }));
+    
+    this.data.dailyChallenges.push(...newChallenges);
+    this.save();
+    
+    return newChallenges;
+  }
+
+  updateChallengeProgress(challengeId: string, value: number): void {
+    const challenge = this.data.dailyChallenges.find(c => c.id === challengeId);
+    if (challenge) {
+      challenge.currentValue = value;
+      if (challenge.currentValue >= challenge.targetValue) {
+        challenge.completed = true;
+        // 奖励积分
+        this.toggleRecord(challenge.childId, 'challenge_' + challenge.id, true, challenge.rewardPoints);
+      }
+      this.save();
+    }
+  }
+
+  getTodayCompletedChallenges(childId: string): number {
+    const today = getToday();
+    return this.data.dailyChallenges.filter(c => 
+      c.childId === childId && c.date === today && c.completed
+    ).length;
+  }
+
   // Reset
   resetAll(): void {
     this.data = {
@@ -1070,6 +1186,7 @@ class Store {
       studyTasks: [],
       studyRecords: [],
       scores: [],
+      dailyChallenges: [],
     };
     this.save();
   }

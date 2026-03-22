@@ -206,6 +206,13 @@
                 ⏸️ 暂停
               </button>
               <button 
+                v-if="task.status === 'in_progress'"
+                class="timer-btn focus"
+                @click="enterFocusMode(task)"
+              >
+                🎯 专注模式
+              </button>
+              <button 
                 v-if="task.status === 'in_progress' || task.status === 'paused'"
                 class="timer-btn complete"
                 @click="completeTask(task)"
@@ -476,6 +483,66 @@
 
     <!-- 底部导航 -->
     <BottomNav />
+
+    <!-- 专注模式 Overlay -->
+    <div v-if="showFocusMode && focusModeTask" class="focus-mode-overlay">
+      <div class="focus-mode-content">
+        <!-- 关闭按钮 -->
+        <button class="focus-close-btn" @click="exitFocusMode">×</button>
+        
+        <!-- 任务信息 -->
+        <div class="focus-task-info">
+          <span class="focus-task-icon">{{ getSubjectIcon(focusModeTask.subject) }}</span>
+          <h2 class="focus-task-name">{{ focusModeTask.name }}</h2>
+          <p class="focus-task-subject">{{ focusModeTask.subject }}</p>
+        </div>
+
+        <!-- 计时器显示 -->
+        <div class="focus-timer-display">
+          <template v-if="focusModeTask.timerMode === 'stopwatch'">
+            <span class="focus-timer-value">{{ formatTime(getTotalSeconds(focusModeTask)) }}</span>
+            <span class="focus-timer-label">专注中</span>
+          </template>
+          <template v-else-if="focusModeTask.timerMode === 'countdown'">
+            <span class="focus-timer-value" :class="{ warning: getRemainingSeconds(focusModeTask) < 60 }">
+              {{ formatTime(getRemainingSeconds(focusModeTask)) }}
+            </span>
+            <span class="focus-timer-label">剩余时间</span>
+          </template>
+          <template v-else-if="focusModeTask.timerMode === 'pomodoro'">
+            <span class="focus-timer-value">🍅 {{ focusModeTask.currentPomodoro || 0 }}/{{ focusModeTask.totalPomodoros || 4 }}</span>
+            <span class="focus-timer-label">番茄钟</span>
+          </template>
+        </div>
+
+        <!-- 激励文字 -->
+        <div class="focus-motivation">
+          <p>{{ getFocusMotivation() }}</p>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="focus-actions">
+          <button 
+            v-if="focusModeTask.status === 'in_progress'"
+            class="focus-btn pause"
+            @click="pauseTask(focusModeTask)"
+          >
+            ⏸️ 暂停
+          </button>
+          <button 
+            class="focus-btn complete"
+            @click="completeTask(focusModeTask); exitFocusMode()"
+          >
+            ✅ 完成学习
+          </button>
+        </div>
+
+        <!-- 专注提示 -->
+        <div class="focus-tips">
+          <p>💡 专注小贴士：保持呼吸，放松肩膀，专注于眼前的任务</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -498,6 +565,34 @@ const currentChild = computed(() => store.getCurrentChild());
 
 const onChildChanged = (_childId: string) => {
   stopTimer();
+};
+
+// 专注模式
+const showFocusMode = ref(false);
+const focusModeTask = ref<StudyTask | null>(null);
+
+const enterFocusMode = (task: StudyTask) => {
+  showFocusMode.value = true;
+  focusModeTask.value = task;
+};
+
+const exitFocusMode = () => {
+  showFocusMode.value = false;
+  focusModeTask.value = null;
+};
+
+const getFocusMotivation = (): string => {
+  const motivations = [
+    "专注让你更优秀 💪",
+    "坚持下去，你正在进步 🚀",
+    "专注的力量超乎想象 ✨",
+    "每一个专注的瞬间都在积累成功 🌟",
+    "你比自己想象的更强大 🏆",
+    "专注学习，遇见更好的自己 🌈",
+    "保持这个节奏，成功就在眼前 🎯",
+    "你的努力终将开花结果 🌻",
+  ];
+  return motivations[Math.floor(Math.random() * motivations.length)];
 };
 
 // 表单
@@ -1885,5 +1980,201 @@ onUnmounted(() => {
   padding: var(--space-xl);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* Focus Mode Overlay */
+.focus-mode-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.focus-mode-content {
+  text-align: center;
+  color: white;
+  padding: var(--space-xl);
+  max-width: 400px;
+  width: 100%;
+}
+
+.focus-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  font-size: 28px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.focus-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.focus-task-info {
+  margin-bottom: var(--space-2xl);
+}
+
+.focus-task-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: var(--space-md);
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.focus-task-name {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 var(--space-sm);
+}
+
+.focus-task-subject {
+  font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.focus-timer-display {
+  margin-bottom: var(--space-2xl);
+}
+
+.focus-timer-value {
+  display: block;
+  font-size: 72px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+  }
+  to {
+    text-shadow: 0 0 40px rgba(255, 255, 255, 0.5);
+  }
+}
+
+.focus-timer-value.warning {
+  color: #ff6b6b;
+  -webkit-text-fill-color: #ff6b6b;
+  text-shadow: 0 0 40px rgba(255, 107, 107, 0.5);
+}
+
+.focus-timer-label {
+  display: block;
+  font-size: var(--font-size-lg);
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: var(--space-sm);
+}
+
+.focus-motivation {
+  margin-bottom: var(--space-xl);
+}
+
+.focus-motivation p {
+  font-size: var(--font-size-lg);
+  color: rgba(255, 255, 255, 0.9);
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.focus-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  margin-bottom: var(--space-xl);
+}
+
+.focus-btn {
+  padding: 14px 28px;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.focus-btn.pause {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.focus-btn.pause:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.focus-btn.complete {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.focus-btn.complete:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+}
+
+.focus-tips {
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-xl);
+}
+
+.focus-tips p {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
 }
 </style>

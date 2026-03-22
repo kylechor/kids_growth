@@ -23,6 +23,28 @@
           </div>
         </div>
       </div>
+
+      <!-- 等级进度条 -->
+      <div class="level-card">
+        <div class="level-header">
+          <div class="level-info">
+            <span class="level-icon">{{ levelInfo.icon }}</span>
+            <div class="level-text">
+              <span class="level-name">{{ levelInfo.name }}</span>
+              <span class="level-title">Lv.{{ levelInfo.level }}</span>
+            </div>
+          </div>
+          <div class="level-progress-info">
+            <span class="progress-text">{{ levelProgress.currentPoints }} / {{ levelInfo.maxPoints === Infinity ? '∞' : levelInfo.maxPoints }}</span>
+          </div>
+        </div>
+        <div class="level-progress-bar">
+          <div class="level-progress-fill" :style="{ width: levelProgress.progressPercent + '%', background: levelInfo.color }"></div>
+        </div>
+        <div class="level-footer">
+          <span class="level-tip">再获得 {{ levelProgress.pointsToNextLevel }} 积分升级到 {{ nextLevel?.name || '最高级' }}</span>
+        </div>
+      </div>
       
       <!-- GitHub风格打卡日历 - 单行 -->
       <div class="calendar-section">
@@ -80,6 +102,52 @@
         </div>
         <div class="points-row" v-if="tasks.length > 0">
           <span class="today-points" :class="todayPointsClass">{{ todayPoints > 0 ? '+' : '' }}{{ todayPoints }} 今日积分</span>
+        </div>
+      </div>
+
+      <!-- 每日挑战 -->
+      <div class="challenges-section">
+        <div class="section-header">
+          <div class="section-title-row">
+            <span class="section-icon">🎯</span>
+            <span class="section-title">每日挑战</span>
+          </div>
+          <span class="challenge-count">{{ completedChallengeCount }}/{{ dailyChallenges.length }}</span>
+        </div>
+        <div class="challenges-list" v-if="dailyChallenges.length > 0">
+          <div 
+            v-for="challenge in dailyChallenges" 
+            :key="challenge.id"
+            class="challenge-item"
+            :class="{ completed: challenge.completed }"
+          >
+            <div class="challenge-icon">{{ getChallengeIcon(challenge.type) }}</div>
+            <div class="challenge-content">
+              <div class="challenge-title">{{ challenge.title }}</div>
+              <div class="challenge-desc">{{ challenge.description }}</div>
+              <div class="challenge-progress">
+                <div class="challenge-progress-bar">
+                  <div 
+                    class="challenge-progress-fill" 
+                    :style="{ width: Math.min(100, (challenge.currentValue / challenge.targetValue) * 100) + '%' }"
+                  ></div>
+                </div>
+                <span class="challenge-progress-text">
+                  {{ challenge.currentValue }}/{{ challenge.targetValue }}
+                </span>
+              </div>
+            </div>
+            <div class="challenge-reward">
+              <span class="reward-badge" :class="{ earned: challenge.completed }">
+                +{{ challenge.rewardPoints }}
+              </span>
+              <span v-if="challenge.completed" class="completed-check">✓</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="no-challenges">
+          <p>今天还没有挑战</p>
+          <button class="generate-btn" @click="generateChallenges">生成挑战</button>
         </div>
       </div>
 
@@ -321,7 +389,67 @@ const loadRecords = () => {
 
 const goToChildren = () => router.push('/children');
 
-onMounted(loadRecords);
+// 等级系统
+const levelProgress = computed(() => {
+  if (!currentChild.value) return { currentLevel: 1, currentPoints: 0, pointsToNextLevel: 100, progressPercent: 0 };
+  return store.getLevelProgress(currentChild.value.id);
+});
+
+const levelInfo = computed(() => {
+  if (!currentChild.value) return { level: 1, name: '小小萌新', icon: '🌱', color: '#10b981', maxPoints: 100, minPoints: 0 };
+  return store.getLevelInfo(currentChild.value.id);
+});
+
+const nextLevel = computed(() => {
+  const LEVEL_NAMES: Record<number, string> = {
+    1: '成长小芽',
+    2: '学习小童',
+    3: '勤奋小学生',
+    4: '学霸萌芽',
+    5: '知识小将',
+    6: '智慧少年',
+    7: '学霸之星',
+    8: '学习达人',
+    9: '全能学霸',
+  };
+  const current = levelProgress.value.currentLevel;
+  return current < 10 ? { name: LEVEL_NAMES[current + 1] || '最高级' } : null;
+});
+
+// 每日挑战
+const dailyChallenges = computed(() => {
+  if (!currentChild.value) return [];
+  return store.getDailyChallenges(currentChild.value.id);
+});
+
+const completedChallengeCount = computed(() => {
+  if (!currentChild.value) return 0;
+  return store.getTodayCompletedChallenges(currentChild.value.id);
+});
+
+const generateChallenges = () => {
+  if (!currentChild.value) return;
+  store.generateDailyChallenges(currentChild.value.id);
+};
+
+const getChallengeIcon = (type: string): string => {
+  const icons: Record<string, string> = {
+    quick: '⚡',
+    study: '📚',
+    exercise: '🏃',
+    creative: '🎨',
+    social: '🤝',
+  };
+  return icons[type] || '🎯';
+};
+
+onMounted(() => {
+  loadRecords();
+  // 自动生成今日挑战
+  if (currentChild.value) {
+    store.generateDailyChallenges(currentChild.value.id);
+  }
+});
 </script>
 
 <style scoped>
@@ -1012,5 +1140,259 @@ onMounted(loadRecords);
 
 .celebration-leave-active {
   animation: celebrationPop 0.3s ease reverse;
+}
+
+/* Level Card */
+.level-card {
+  margin: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.level-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.level-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.level-icon {
+  font-size: 32px;
+}
+
+.level-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.level-name {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.level-title {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.level-progress-info {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.level-progress-bar {
+  height: 8px;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.level-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.level-footer {
+  text-align: center;
+}
+
+.level-tip {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Challenges Section */
+.challenges-section {
+  margin: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.section-icon {
+  font-size: 20px;
+}
+
+.section-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.challenge-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.challenges-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.challenge-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s;
+}
+
+.challenge-item.completed {
+  opacity: 0.7;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.challenge-icon {
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+}
+
+.challenge-content {
+  flex: 1;
+}
+
+.challenge-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.challenge-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.challenge-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.challenge-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.challenge-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
+}
+
+.challenge-item.completed .challenge-progress-fill {
+  background: var(--color-success);
+}
+
+.challenge-progress-text {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  min-width: 40px;
+  text-align: right;
+}
+
+.challenge-reward {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.reward-badge {
+  padding: 4px 10px;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.reward-badge.earned {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.completed-check {
+  font-size: 16px;
+  color: var(--color-success);
+}
+
+.no-challenges {
+  text-align: center;
+  padding: var(--space-lg);
+}
+
+.no-challenges p {
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.generate-btn {
+  padding: 10px 24px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Responsive for PC */
+@media (min-width: 768px) {
+  .main-content {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .today-data-card,
+  .level-card,
+  .calendar-section,
+  .progress-card,
+  .challenges-section,
+  .weekly-report {
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 </style>

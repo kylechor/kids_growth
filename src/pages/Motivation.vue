@@ -18,6 +18,30 @@
 
     <!-- 积分 Tab -->
     <div v-if="activeTab === 'points'" class="tab-content">
+      <!-- 等级卡片 -->
+      <div class="level-card" v-if="currentChild && levelInfo">
+        <div class="level-header">
+          <div class="level-badge" :style="{ background: `linear-gradient(135deg, ${levelInfo.color} 0%, ${levelInfo.color}aa 100%)` }">
+            <span class="level-icon">{{ levelInfo.icon }}</span>
+            <span class="level-number">Lv.{{ levelInfo.level }}</span>
+          </div>
+          <div class="level-info">
+            <span class="level-name">{{ levelInfo.name }}</span>
+            <span class="level-title">{{ levelInfo.title }}</span>
+          </div>
+        </div>
+        <div class="level-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: levelProgress.progressPercent + '%' }"></div>
+          </div>
+          <div class="progress-text">
+            <span>{{ levelProgress.currentPoints }} 积分</span>
+            <span v-if="levelProgress.pointsToNextLevel > 0">距离下一级还需 {{ levelProgress.pointsToNextLevel }}</span>
+            <span v-else>已达到最高等级!</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 积分卡片 -->
       <div class="points-card" v-if="currentChild">
         <div class="points-main">
@@ -192,6 +216,17 @@ const onChildChanged = (_childId: string) => {
   // 刷新数据
 };
 
+// 等级
+const levelInfo = computed(() => {
+  if (!currentChild.value) return null;
+  return store.getLevelInfo(currentChild.value.id);
+});
+
+const levelProgress = computed(() => {
+  if (!currentChild.value) return { currentLevel: 1, currentPoints: 0, pointsToNextLevel: 100, progressPercent: 0 };
+  return store.getLevelProgress(currentChild.value.id);
+});
+
 // 积分
 const totalPoints = computed(() => {
   if (!currentChild.value) return 0;
@@ -322,9 +357,112 @@ const formatDateTime = (dateStr: string): string => {
   color: white;
 }
 
+/* Level Card */
+.level-card {
+  margin: var(--space-md);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: var(--radius-xl);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.level-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.level-badge {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.level-icon {
+  font-size: 32px;
+}
+
+.level-number {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.level-info {
+  flex: 1;
+}
+
+.level-name {
+  display: block;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.level-title {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
+
+.level-progress {
+  margin-bottom: var(--space-md);
+}
+
+.progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffd700 0%, #ffec8b 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.level-perks {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.perk-tag {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
 /* Points Card */
 .points-card {
   margin: var(--space-md);
+  margin-top: var(--space-sm);
   padding: var(--space-lg);
   background: linear-gradient(135deg, var(--color-primary), #8b5cf6);
   border-radius: var(--radius-xl);

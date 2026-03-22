@@ -325,3 +325,76 @@ export const SCORE_TYPE_LABELS: Record<ScoreType, string> = {
 };
 
 export const SUBJECTS = ['语文', '数学', '英语', '科学', '其他'];
+
+// ============== Level System Types ==============
+
+// 等级定义
+export interface LevelDefinition {
+  level: number;
+  name: string;
+  minPoints: number; // 需要达到的积分
+  maxPoints: number;  // 下一级需要的积分
+  title: string;     // 等级称号
+  icon: string;      // 等级图标
+  color: string;     // 颜色
+}
+
+// 等级进度
+export interface LevelProgress {
+  currentLevel: number;
+  currentPoints: number;      // 当前积分
+  pointsToNextLevel: number;  // 到下一级还需要的积分
+  progressPercent: number;    // 当前等级进度百分比
+}
+
+// 等级定义表
+export const LEVEL_DEFINITIONS: LevelDefinition[] = [
+  { level: 1, name: '小小萌新', minPoints: 0, maxPoints: 100, title: '🌱', icon: '🌱', color: '#10b981' },
+  { level: 2, name: '成长小芽', minPoints: 100, maxPoints: 300, title: '🌿', icon: '🌿', color: '#22c55e' },
+  { level: 3, name: '学习小童', minPoints: 300, maxPoints: 600, title: '📗', icon: '📗', color: '#84cc16' },
+  { level: 4, name: '勤奋小学生', minPoints: 600, maxPoints: 1000, title: '📘', icon: '📘', color: '#06b6d4' },
+  { level: 5, name: '学霸萌芽', minPoints: 1000, maxPoints: 1500, title: '📙', icon: '📙', color: '#3b82f6' },
+  { level: 6, name: '知识小将', minPoints: 1500, maxPoints: 2200, title: '📚', icon: '📚', color: '#8b5cf6' },
+  { level: 7, name: '智慧少年', minPoints: 2200, maxPoints: 3000, title: '🧙', icon: '🧙', color: '#a855f7' },
+  { level: 8, name: '学霸之星', minPoints: 3000, maxPoints: 4000, title: '⭐', icon: '⭐', color: '#f59e0b' },
+  { level: 9, name: '学习达人', minPoints: 4000, maxPoints: 5500, title: '🌟', icon: '🌟', color: '#f97316' },
+  { level: 10, name: '全能学霸', minPoints: 5500, maxPoints: Infinity, title: '🏆', icon: '🏆', color: '#ef4444' },
+];
+
+// ============== Daily Challenge Types ==============
+
+// 每日挑战类型
+export type ChallengeType = 'quick' | 'study' | 'exercise' | 'creative' | 'social';
+
+// 每日挑战
+export interface DailyChallenge {
+  id: string;
+  childId: string;
+  date: string;      // 日期 YYYY-MM-DD
+  type: ChallengeType;
+  title: string;    // 挑战标题
+  description: string; // 描述
+  targetValue: number; // 目标值
+  currentValue: number; // 当前值
+  rewardPoints: number; // 奖励积分
+  completed: boolean;
+  createdAt: string;
+}
+
+// 挑战类型标签
+export const CHALLENGE_TYPE_LABELS: Record<ChallengeType, string> = {
+  quick: '⚡ 速战速决',
+  study: '📚 学习挑战',
+  exercise: '🏃 运动挑战',
+  creative: '🎨 创意挑战',
+  social: '🤝 协作挑战',
+};
+
+// 挑战类型图标
+export const CHALLENGE_TYPE_ICONS: Record<ChallengeType, string> = {
+  quick: '⚡',
+  study: '📚',
+  exercise: '🏃',
+  creative: '🎨',
+  social: '🤝',
+};
