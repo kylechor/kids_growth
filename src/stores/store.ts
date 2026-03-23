@@ -1,5 +1,5 @@
 import type { 
-  Child, Task, DailyRecord, Reward, Redemption, AppState, Badge, TaskCategory,
+  Child, Task, DailyRecord, Reward, Redemption, AppState, Badge, TaskCategory, TaskFrequency,
   Project, GeneratedProjectTask, ProjectStory, Reminder, StudyTask, AIProjectResult,
   StudyRecord, Score, ScoreType, DailyChallenge, LevelDefinition, LevelProgress
 } from '../types';
@@ -182,7 +182,7 @@ class Store {
     return this.data.tasks.filter(t => t.childId === childId);
   }
 
-  addTask(childId: string, name: string, points: number, deductPoints: number, icon: string, category: TaskCategory = 'other'): Task | null {
+  addTask(childId: string, name: string, points: number, deductPoints: number, icon: string, category: TaskCategory = 'other', frequency: TaskFrequency = 'daily', weekdays?: number[]): Task | null {
     const childTasks = this.getTasks(childId);
     if (!this.data.appState.isPro && childTasks.length >= 3) {
       return null;
@@ -195,7 +195,8 @@ class Store {
       deductPoints,
       icon,
       category,
-      frequency: 'daily',
+      frequency,
+      weekdays: frequency === 'weekly' ? weekdays : undefined,
     };
     this.data.tasks.push(task);
     this.save();
@@ -285,6 +286,77 @@ class Store {
     return this.data.records
       .filter(r => r.childId === childId && r.date === today)
       .reduce((sum, r) => sum + (r.completed ? r.points : -r.points + r.points), 0);
+  }
+
+  // 获取某一天的积分
+  getDayPoints(childId: string, dateStr: string): number {
+    getUpdateCount();
+    const tasks = this.getTasks(childId);
+    return this.data.records
+      .filter(r => r.childId === childId && r.date === dateStr)
+      .reduce((sum, r) => {
+        const task = tasks.find(t => t.id === r.taskId);
+        if (task) {
+          return sum + (r.completed ? task.points : 0);
+        }
+        return sum;
+      }, 0);
+  }
+
+  // 获取本周每天的积分
+  getWeekPoints(childId: string): { date: string; dayName: string; points: number }[] {
+    getUpdateCount();
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const result: { date: string; dayName: string; points: number }[] = [];
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      const points = this.getDayPoints(childId, dateStr);
+      result.push({
+        date: dateStr,
+        dayName: dayNames[i],
+        points
+      });
+    }
+
+    return result;
+  }
+
+  // 获取本周项目统计
+  getWeekProjectStats(childId: string): { total: number; completed: number; points: number } {
+    getUpdateCount();
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    const startStr = startOfWeek.toISOString().split('T')[0];
+    const endStr = today.toISOString().split('T')[0];
+
+    const projects = this.data.projects.filter(p => p.childId === childId);
+    const tasks = this.data.projectTasks;
+
+    let total = 0;
+    let completed = 0;
+
+    tasks.forEach(t => {
+      const project = projects.find(p => p.id === t.projectId);
+      if (project && t.completedAt) {
+        const taskDate = t.completedAt.split('T')[0];
+        if (taskDate >= startStr && taskDate <= endStr) {
+          total++;
+          completed++;
+        }
+      }
+    });
+
+    return { total, completed, points: completed * 10 };
   }
 
   getTotalPoints(childId: string): number {

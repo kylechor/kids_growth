@@ -42,6 +42,7 @@ export interface Task {
   icon: string; // emoji
   category: TaskCategory; // 任务分类
   frequency: TaskFrequency; // 频率：单次/每天/每周
+  weekdays?: number[]; // 每周任务的周几 (0=周日, 1=周一, ..., 6=周六)
 }
 
 export interface DailyRecord {

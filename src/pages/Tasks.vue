@@ -180,119 +180,6 @@
         </div>
       </div>
 
-      <!-- 添加/编辑表单 -->
-      <div class="add-section" v-if="currentChild">
-        <div class="form-header">
-          <h3>{{ editingTask ? '编辑任务' : '添加新任务' }}</h3>
-        </div>
-        
-        <!-- 图标选择 -->
-        <div class="picker-section">
-          <label class="picker-label">选择图标</label>
-          <div class="icon-picker">
-            <button 
-              v-for="icon in iconOptions" 
-              :key="icon"
-              class="icon-option"
-              :class="{ selected: newTask.icon === icon }"
-              @click="newTask.icon = icon"
-            >
-              {{ icon }}
-            </button>
-          </div>
-        </div>
-
-        <!-- 分类选择 -->
-        <div class="picker-section">
-          <label class="picker-label">任务分类</label>
-          <div class="category-picker">
-            <button 
-              v-for="cat in categoryOptions" 
-              :key="cat"
-              class="cat-option"
-              :class="{ selected: newTask.category === cat }"
-              :style="newTask.category === cat ? { background: getCategoryColor(cat) } : {}"
-              @click="newTask.category = cat"
-            >
-              {{ getCategoryLabel(cat) }}
-            </button>
-          </div>
-        </div>
-
-        <!-- 任务名称 -->
-        <div class="input-group">
-          <input v-model="newTask.name" placeholder="输入任务名称，如：按时起床" />
-        </div>
-
-        <!-- 积分设置 -->
-        <div class="points-row">
-          <div class="point-group">
-            <label>完成加分</label>
-            <div class="stepper">
-              <button @click="newTask.points = Math.max(1, newTask.points - 1)">−</button>
-              <span class="value">{{ newTask.points }}</span>
-              <button @click="newTask.points++">+</button>
-            </div>
-          </div>
-          <div class="point-group">
-            <label>未完成扣分</label>
-            <div class="stepper">
-              <button @click="newTask.deductPoints = Math.max(0, newTask.deductPoints - 1)">−</button>
-              <span class="value">{{ newTask.deductPoints }}</span>
-              <button @click="newTask.deductPoints++">+</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 预设任务 -->
-        <div class="presets-section">
-          <label class="picker-label">快速添加</label>
-          <div class="preset-tasks">
-            <button 
-              v-for="preset in presetTasks" 
-              :key="preset.name"
-              class="preset-btn"
-              @click="applyPreset(preset)"
-            >
-              <span>{{ preset.icon }}</span>
-              <span>{{ preset.name }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- AI 智能生成 -->
-        <div class="ai-task-section">
-          <div class="ai-divider">
-            <span class="ai-line"></span>
-            <span class="ai-text">🤖 AI 智能生成</span>
-            <span class="ai-line"></span>
-          </div>
-          
-          <div class="ai-input-group">
-            <input 
-              v-model="aiTaskGoal" 
-              placeholder="例如：培养孩子的时间管理能力"
-              @keyup.enter="generateTasks"
-            />
-            <button 
-              class="ai-btn"
-              @click="generateTasks"
-              :disabled="!aiTaskGoal.trim() || isGeneratingTasks"
-            >
-              {{ isGeneratingTasks ? '生成中...' : '生成推荐任务' }}
-            </button>
-          </div>
-          
-          <p v-if="aiTaskError" class="task-error">{{ aiTaskError }}</p>
-        </div>
-
-        <!-- 提交按钮 -->
-        <button class="btn-primary" @click="saveTask" :disabled="!newTask.name.trim()">
-          {{ editingTask ? '保存修改' : '添加任务' }}
-        </button>
-        <button class="btn-secondary" v-if="editingTask" @click="cancelEdit">取消</button>
-      </div>
-
       <!-- 限制提示 -->
       <div class="limit-card" v-if="!canAddTask && currentChild">
         <div class="limit-icon">⚡</div>
@@ -513,6 +400,38 @@
             </div>
           </div>
 
+          <!-- 频率选择 -->
+          <div class="picker-section">
+            <label class="picker-label">执行频率</label>
+            <div class="category-picker frequency-picker">
+              <button 
+                v-for="freq in frequencyOptions" 
+                :key="freq.value"
+                class="cat-option"
+                :class="{ selected: newTask.frequency === freq.value }"
+                @click="newTask.frequency = freq.value"
+              >
+                {{ freq.icon }} {{ freq.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 选择周几（仅每周显示） -->
+          <div class="picker-section" v-if="newTask.frequency === 'weekly'">
+            <label class="picker-label">选择周几</label>
+            <div class="weekday-picker">
+              <button 
+                v-for="day in weekdayOptions" 
+                :key="day.value"
+                class="weekday-btn"
+                :class="{ selected: newTask.weekdays?.includes(day.value) }"
+                @click="toggleWeekday(day.value)"
+              >
+                {{ day.label }}
+              </button>
+            </div>
+          </div>
+
           <!-- 任务名称 -->
           <div class="input-group">
             <input v-model="newTask.name" placeholder="输入任务名称，如：按时起床" />
@@ -709,7 +628,7 @@
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { store } from '../stores/store';
-import type { Task, TaskCategory, Project, AIProjectResult, AIStepResult, GeneratedProjectTask } from '../types';
+import type { Task, TaskCategory, TaskFrequency, Project, AIProjectResult, AIStepResult, GeneratedProjectTask } from '../types';
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '../types';
 import BottomNav from '../components/BottomNav.vue';
 import ChildSelector from '../components/ChildSelector.vue';
@@ -780,14 +699,19 @@ const weekday = computed(() => {
 
 const iconOptions = ['🌅', '📚', '📖', '🏃', '🧹', '🍎', '💤', '✏️', '🎵', '🎨', '🚿', '🛏️', '🧼', '🦷', '🎮'];
 const categoryOptions: TaskCategory[] = ['study', 'life', 'exercise', 'other'];
-
-const presetTasks = [
-  { name: '按时起床', icon: '🌅', points: 5, deductPoints: 3, category: 'life' as TaskCategory },
-  { name: '认真作业', icon: '📚', points: 10, deductPoints: 5, category: 'study' as TaskCategory },
-  { name: '主动阅读', icon: '📖', points: 5, deductPoints: 2, category: 'study' as TaskCategory },
-  { name: '整理房间', icon: '🧹', points: 5, deductPoints: 3, category: 'life' as TaskCategory },
-  { name: '早睡早起', icon: '💤', points: 5, deductPoints: 3, category: 'life' as TaskCategory },
-  { name: '体育锻炼', icon: '🏃', points: 8, deductPoints: 4, category: 'exercise' as TaskCategory },
+const frequencyOptions: { value: TaskFrequency; label: string; icon: string }[] = [
+  { value: 'once', label: '单次', icon: '1️⃣' },
+  { value: 'daily', label: '每天', icon: '📅' },
+  { value: 'weekly', label: '每周', icon: '📆' },
+];
+const weekdayOptions: { value: number; label: string }[] = [
+  { value: 1, label: '周一' },
+  { value: 2, label: '周二' },
+  { value: 3, label: '周三' },
+  { value: 4, label: '周四' },
+  { value: 5, label: '周五' },
+  { value: 6, label: '周六' },
+  { value: 0, label: '周日' },
 ];
 
 const newTask = ref({
@@ -796,6 +720,8 @@ const newTask = ref({
   points: 5,
   deductPoints: 3,
   category: 'other' as TaskCategory,
+  frequency: 'daily' as TaskFrequency,
+  weekdays: [] as number[],
 });
 
 const editingTask = ref<Task | null>(null);
@@ -828,8 +754,20 @@ const closeAddTaskModal = () => {
 
 const quickAddTask = () => {
   if (!newTask.value.name.trim() || !selectedChildId.value) return;
-  store.addTask(selectedChildId.value, newTask.value.name, newTask.value.points, newTask.value.deductPoints, newTask.value.icon, newTask.value.category);
+  store.addTask(selectedChildId.value, newTask.value.name, newTask.value.points, newTask.value.deductPoints, newTask.value.icon, newTask.value.category, newTask.value.frequency, newTask.value.weekdays);
   closeAddTaskModal();
+};
+
+const toggleWeekday = (day: number) => {
+  if (!newTask.value.weekdays) {
+    newTask.value.weekdays = [];
+  }
+  const index = newTask.value.weekdays.indexOf(day);
+  if (index >= 0) {
+    newTask.value.weekdays.splice(index, 1);
+  } else {
+    newTask.value.weekdays.push(day);
+  }
 };
 
 const getFrequencyLabel = (freq: string): string => {
@@ -915,33 +853,6 @@ const toggleTask = (task: Task) => {
   store.toggleRecord(currentChild.value.id, task.id, newStatus, task.points);
 };
 
-const applyPreset = (preset: typeof presetTasks[0]) => {
-  newTask.value.name = preset.name;
-  newTask.value.icon = preset.icon;
-  newTask.value.points = preset.points;
-  newTask.value.deductPoints = preset.deductPoints;
-  newTask.value.category = preset.category;
-};
-
-const saveTask = () => {
-  if (!newTask.value.name.trim() || !selectedChildId.value) return;
-  
-  if (editingTask.value) {
-    store.updateTask(editingTask.value.id, {
-      name: newTask.value.name,
-      icon: newTask.value.icon,
-      points: newTask.value.points,
-      deductPoints: newTask.value.deductPoints,
-      category: newTask.value.category,
-    });
-    cancelEdit();
-  } else {
-    if (store.addTask(selectedChildId.value, newTask.value.name, newTask.value.points, newTask.value.deductPoints, newTask.value.icon, newTask.value.category)) {
-      resetForm();
-    }
-  }
-};
-
 const editTask = (task: Task) => {
   editingTask.value = task;
   newTask.value = {
@@ -950,17 +861,14 @@ const editTask = (task: Task) => {
     points: task.points,
     deductPoints: task.deductPoints,
     category: task.category || 'other',
+    frequency: task.frequency || 'daily',
+    weekdays: (task as any).weekdays || [],
   };
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-const cancelEdit = () => {
-  editingTask.value = null;
-  resetForm();
-};
-
 const resetForm = () => {
-  newTask.value = { name: '', icon: '🌅', points: 5, deductPoints: 3, category: 'other' };
+  newTask.value = { name: '', icon: '🌅', points: 5, deductPoints: 3, category: 'other', frequency: 'daily', weekdays: [] };
 };
 
 const getCategoryLabel = (cat: string) => {
