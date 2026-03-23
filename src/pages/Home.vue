@@ -151,11 +151,43 @@
         </div>
       </div>
 
-      <!-- 本周成绩单 -->
+      <!-- 本周积分柱状图 -->
+      <div class="week-points-chart">
+        <div class="chart-header">
+          <span class="chart-icon">📈</span>
+          <span class="chart-title">本周积分</span>
+          <span class="chart-total">+{{ weekPointsTotal }} 积分</span>
+        </div>
+        <div class="chart-body">
+          <div class="chart-y-axis">
+            <span>{{ maxWeekPoints }}</span>
+            <span>{{ Math.round(maxWeekPoints / 2) }}</span>
+            <span>0</span>
+          </div>
+          <div class="chart-bars">
+            <div 
+              v-for="day in weekPointsData" 
+              :key="day.date"
+              class="chart-bar-wrapper"
+            >
+              <div 
+                class="chart-bar"
+                :style="{ height: getBarHeight(day.points) + '%' }"
+                :class="{ today: day.isToday, future: day.isFuture }"
+              >
+                <span v-if="day.points > 0" class="bar-value">{{ day.points }}</span>
+              </div>
+              <span class="bar-label" :class="{ today: day.isToday }">{{ day.dayName }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 本周任务卡片 -->
       <div class="weekly-report" v-if="tasks.length > 0">
         <div class="report-header">
-          <span class="report-icon">📊</span>
-          <span class="report-title">本周成绩单</span>
+          <span class="report-icon">📋</span>
+          <span class="report-title">本周任务</span>
         </div>
         <div class="report-stats">
           <div class="report-stat">
@@ -173,13 +205,13 @@
         </div>
         <div class="week-days">
           <div 
-            v-for="day in weekDays" 
-            :key="day.name"
+            v-for="day in weekPointsData" 
+            :key="day.date"
             class="week-day"
-            :class="{ completed: day.completed, future: day.isFuture }"
+            :class="{ completed: day.points > 0, future: day.isFuture }"
           >
-            <span class="day-name">{{ day.name }}</span>
-            <span class="day-status">{{ day.isFuture ? '' : (day.completed ? '✓' : '○') }}</span>
+            <span class="day-name">{{ day.dayName }}</span>
+            <span class="day-status">{{ day.isFuture ? '' : (day.points > 0 ? '✓' : '○') }}</span>
           </div>
         </div>
         <div class="report-progress">
@@ -187,6 +219,34 @@
             <div class="progress-fill" :style="{ width: weekProgressPercent + '%' }"></div>
           </div>
           <span class="progress-text">{{ weekProgressPercent }}% 完成</span>
+        </div>
+      </div>
+
+      <!-- 本周项目卡片 -->
+      <div class="weekly-report">
+        <div class="report-header">
+          <span class="report-icon">🚀</span>
+          <span class="report-title">本周项目</span>
+        </div>
+        <div class="report-stats">
+          <div class="report-stat">
+            <span class="stat-num">{{ weekProjectStats.completed }}</span>
+            <span class="stat-desc">已完成</span>
+          </div>
+          <div class="report-stat">
+            <span class="stat-num">{{ weekProjectStats.total }}</span>
+            <span class="stat-desc">总任务</span>
+          </div>
+          <div class="report-stat highlight">
+            <span class="stat-num">+{{ weekProjectStats.points }}</span>
+            <span class="stat-desc">获得积分</span>
+          </div>
+        </div>
+        <div class="report-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: weekProjectStats.total > 0 ? (weekProjectStats.completed / weekProjectStats.total * 100) : 0 + '%' }"></div>
+          </div>
+          <span class="progress-text">{{ weekProjectStats.total > 0 ? Math.round(weekProjectStats.completed / weekProjectStats.total * 100) : 0 }}% 完成</span>
         </div>
       </div>
 
@@ -313,33 +373,41 @@ const weekStats = computed(() => {
   return store.getWeekTaskStats(currentChild.value.id);
 });
 
+// 本周积分数据
+const weekPointsData = computed(() => {
+  if (!currentChild.value) return [];
+  const data = store.getWeekPoints(currentChild.value.id);
+  const today = new Date().toISOString().split('T')[0];
+  return data.map(d => ({
+    ...d,
+    isToday: d.date === today,
+    isFuture: d.date > today
+  }));
+});
+
+const weekPointsTotal = computed(() => {
+  return weekPointsData.value.reduce((sum, d) => sum + d.points, 0);
+});
+
+const maxWeekPoints = computed(() => {
+  const max = Math.max(...weekPointsData.value.map(d => d.points), 1);
+  return Math.ceil(max / 10) * 10;
+});
+
+const getBarHeight = (points: number): number => {
+  if (maxWeekPoints.value === 0) return 0;
+  return Math.max((points / maxWeekPoints.value) * 100, points > 0 ? 5 : 0);
+};
+
+// 本周项目统计
+const weekProjectStats = computed(() => {
+  if (!currentChild.value) return { total: 0, completed: 0, points: 0 };
+  return store.getWeekProjectStats(currentChild.value.id);
+});
+
 const weekProgressPercent = computed(() => {
   if (weekStats.value.total === 0) return 0;
   return Math.round((weekStats.value.completed / weekStats.value.total) * 100);
-});
-
-const weekDays = computed(() => {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-  
-  const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-  const todayStr = today.toISOString().split('T')[0];
-  
-  return dayNames.map((name, i) => {
-    const date = new Date(startOfWeek);
-    date.setDate(startOfWeek.getDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
-    const records = store.getRecords(currentChild.value!.id, dateStr);
-    const hasCompleted = records.some(r => r.completed);
-    
-    return {
-      name,
-      completed: hasCompleted,
-      isFuture: dateStr > todayStr
-    };
-  });
 });
 
 const completedCount = computed(() => 
@@ -1052,330 +1120,9 @@ onMounted(() => {
 }
 
 .report-progress .progress-text {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-/* No Child Content */
-.no-child-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  padding: var(--space-xl);
-  text-align: center;
-}
-
-.empty-hero {
-  margin-bottom: var(--space-xl);
-}
-
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: var(--space-md);
-}
-
-.empty-hero h2 {
-  font-size: var(--font-size-xl);
-  margin-bottom: var(--space-sm);
-}
-
-.empty-hero p {
-  color: var(--color-text-secondary);
-}
-
-.btn-primary.large {
-  padding: 16px 48px;
-  font-size: var(--font-size-lg);
-}
-
-/* Celebration Animation */
-.celebration-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-celebration);
-}
-
-.celebration-content {
-  text-align: center;
-  animation: celebrationPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.confetti-icon {
-  font-size: 80px;
-  animation: bounce 0.6s ease infinite alternate;
-}
-
-.celebration-text {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  color: white;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  margin-top: var(--space-md);
-}
-
-@keyframes celebrationPop {
-  0% { transform: scale(0.5); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes bounce {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-10px); }
-}
-
-.celebration-enter-active {
-  animation: celebrationPop 0.3s ease;
-}
-
-.celebration-leave-active {
-  animation: celebrationPop 0.3s ease reverse;
-}
-
-/* Level Card */
-.level-card {
-  margin: var(--space-md);
-  padding: var(--space-md);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-}
-
-.level-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-sm);
-}
-
-.level-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.level-icon {
-  font-size: 32px;
-}
-
-.level-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.level-name {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.level-title {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-}
-
-.level-progress-info {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.level-progress-bar {
-  height: 8px;
-  background: var(--color-bg);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  margin-bottom: var(--space-xs);
-}
-
-.level-progress-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  transition: width 0.3s ease;
-}
-
-.level-footer {
-  text-align: center;
-}
-
-.level-tip {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
-/* Challenges Section */
-.challenges-section {
-  margin: var(--space-md);
-  padding: var(--space-md);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-md);
-}
-
-.section-title-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.section-icon {
-  font-size: 20px;
-}
-
-.section-title {
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.challenge-count {
-  font-size: var(--font-size-sm);
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.challenges-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.challenge-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  background: var(--color-bg);
-  border-radius: var(--radius-lg);
-  transition: all 0.2s;
-}
-
-.challenge-item.completed {
-  opacity: 0.7;
-  background: rgba(16, 185, 129, 0.1);
-}
-
-.challenge-icon {
-  font-size: 28px;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-md);
-}
-
-.challenge-content {
-  flex: 1;
-}
-
-.challenge-title {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 2px;
-}
-
-.challenge-desc {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-xs);
-}
-
-.challenge-progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.challenge-progress-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--color-border);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.challenge-progress-fill {
-  height: 100%;
-  background: var(--color-primary);
-  border-radius: var(--radius-full);
-  transition: width 0.3s ease;
-}
-
-.challenge-item.completed .challenge-progress-fill {
-  background: var(--color-success);
-}
-
-.challenge-progress-text {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  min-width: 40px;
-  text-align: right;
-}
-
-.challenge-reward {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.reward-badge {
-  padding: 4px 10px;
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--color-primary);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-}
-
-.reward-badge.earned {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--color-success);
-}
-
-.completed-check {
-  font-size: 16px;
-  color: var(--color-success);
-}
-
-.no-challenges {
-  text-align: center;
-  padding: var(--space-lg);
-}
-
-.no-challenges p {
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-md);
-}
-
-.generate-btn {
-  padding: 10px 24px;
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
+  margin-left: var(--space-sm);
 }
 
 /* Responsive for PC */
@@ -1390,7 +1137,9 @@ onMounted(() => {
   .calendar-section,
   .progress-card,
   .challenges-section,
-  .weekly-report {
+  .week-points-chart,
+  .weekly-report,
+  .project-report {
     margin-left: auto;
     margin-right: auto;
   }
